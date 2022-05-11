@@ -1,0 +1,2137 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load argonauts %}
+{% block title %} Maps {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}
+<!-- Load Leaflet from CDN -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+crossorigin=""/>
+
+<!-- Include the loading control -->
+<link rel="stylesheet" href="{% static 'assets/css/plugings/Control.Loading.css' %}" />
+<link rel="stylesheet" href="{% static 'assets/css/styledLayerControl.css' %}" />
+<link rel="stylesheet" href="{% static 'assets/css/leaflet.legend.css' %}" />
+<link href="https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.css" rel="stylesheet" />
+<link rel="stylesheet" href="{% static 'assets/css/interactive.css' %}" />
+<style>
+  #basemaps-wrapper {
+    position: absolute;
+    top: 60px;
+    right: 20px;
+    z-index: 400;
+    background: white;
+    padding: 10px;
+  }
+  #basemaps {
+    margin-bottom: 5px;
+  }
+  #map-filters {
+    position: absolute;
+    top: 160px;
+    left: 20px;
+    z-index: 400;
+    background: white;
+    padding: 10px;
+  }
+  /* The Modal (background) */
+  .modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 401; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+   /* background-color: rgb(0,0,0);  Fallback color */
+   /* background-color: rgba(0,0,0,0.4);  Black w/ opacity */
+  }
+    .modal-bg-black{
+    background-color: rgba(0,0,0,0.4);
+  }
+
+  .modal-bg-white{
+    background-color: rgba(255,255,255,0.9);
+  }
+
+  /* Modal Content/Box */
+  .modal-content {
+    background-color: #fefefe;
+    margin: 15% auto; /* 15% from the top and centered */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 30%;
+    max-height: 50vh;
+    overflow: auto;/* Could be more or less, depending on screen size */
+  }
+
+  /* The Close Button */
+  .close {
+    color: #aaa;
+    position: absolute;
+    right:5px;
+    top:2px;
+    /*float: right;*/
+    font-size: 24px;
+    font-weight: bold;
+  }
+
+  .close:hover,
+  .close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  #map{ z-index:1; }
+
+  .myBtn{
+    float: left;
+  }
+  .btn-primary{
+    background: #7a9fbf !important;
+  }
+   #myBtn-filter{
+    float: left;
+  }
+
+  #element1 {
+
+    height: 278px;
+    top: 400px;
+    left: 20px;
+    background-color: #ffffff;
+    font-size: 0.675rem !important;
+    z-index: 400 !important;
+
+
+
+  }
+
+  .content-legend{
+    padding-left: 15px;
+    height: 278px;
+    overflow-y: scroll !important;
+
+
+  }
+
+  .square {
+    height: 32px;
+    width: 32px;
+
+  }
+
+  .floodprone-legend{
+    background-color: #f8c4a4;
+  }
+
+  .floods-legend{
+    background-color: #f4c3eb;
+    border: solid 3px #fc12fa;
+  }
+
+   .line{
+width: 32px;
+height: 4px;
+background-color: #f4c3eb;
+/*border-bottom: 1px solid black;*/
+/*position: absolute;*/
+}
+
+
+.line-boundary{
+
+background-color: #6e6e6e;
+
+}
+
+
+
+.line-water{
+
+background-color: #3e7bff;
+
+}
+
+hr{
+  margin-top: 0.4rem !important;
+}
+
+</style>
+{% endblock stylesheets %}
+
+{% block content %}
+
+<div class="row">
+  <div class="col-md-12">
+    <div class="card card-plain">
+      <div id="card-header" class="card-header">
+	    <!--  <button type="button" id="myBtn1" class="myBtn">Metadata</button>
+        <button type="button" id="myBtn3" class="myBtn">Legend</button>
+        <button type="button" id="myBtn4" class="myBtn">Add River Breakages</button>
+	
+	<button class="dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Change View
+	</button>-->
+	<button type="button" id="myBtn1" class="myBtn btn btn-primary btn-sm">Metadata</button>
+	<button type="button" id="myBtn3" class="myBtn btn btn-primary btn-sm">Help</button>
+
+        <button type="button" id="myBtn4" class="myBtn btn btn-primary btn-sm">Add River Breakages</button>
+	<button class="dropdown-toggle btn btn-primary btn-sm" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Change View</button>
+          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            <a class="dropdown-item" href="{% url 'splitview' %}">Split View</a>
+
+          </div>
+      <!--   Map -->
+      <!-- The Modal -->
+      </div>
+      <div id="myModal" class="modal modal-bg-black">
+
+        <!-- Modal content -->
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <p style="font-size: 16; font-weight: bolder;">Metadata</p>
+	  <hr>
+	  <p style="font-size: 14; font-weight: bolder;">1. Flood Prone Areas</p>
+         
+	  <p>The flood prone layer was derived from combining historical floods layers that were generated from radar images (Sentinel 1) and the optical images (sentinel 2,landsat, and world view VHR Images).The analysis period was 1968-2020 and was done by SWALIM GIS & Remote sensing, Hydrology and meteorology expert in conjunction with SWALIM field human resource network.</p>
+
+
+Here is a summary of the precise details:
+
+<p>1. Google Earth Engine Script was used to extract flooded area from Sentinel 1 from 2014 to Present.</p>
+
+<p>2. Flood exents extracted from optical images was through visual analysis of Sentinel 2 were from 2015 to present. Due to the presence of cloud cover, a combination of Landsat and World View 1 images were used as a complement. </p>
+<p style="font-size: 14; font-weight: bolder;">2. Flooded Area</p>
+<p>The flooded area layer was derived from Radar Images (Sentinel 1) and Optical images (Sentinel 1, Landsat and World view VHR images). This layer contains data from 2013 to Present. Some seasons like, 2020:Deyr did not record any floods. On the flipside,Flooding was experienced in dry seasons like 2020:Hagaa.</p>
+<p style="font-size: 14; font-weight: bolder;">3. Reported Floods</p>
+<p>Data is collected from the field using the Open Data Kit mobile applications. The data contains photos of the flooded areas and a brief description of the situation e.g. names of villages affected. This data is submitted to the database and visualized in the web map section of this application. Overlaying the photos with flooded area extracted from satellite images act as a form of verification.This data is divided into two: "Aware" and "Witnessed floods". Witnessed floods is collected when the data collector is in the vicinity of the flooded area. Aware floods is collected when the data collector is not in the vicinity of the flooded area but he/she has the knowledge of the location and the village that is flooded </p>
+<p style="font-size: 14; font-weight: bolder;">4. River Breakages</p>
+<p>The Juba and Shabelle rivers of Somalia have fertile soils and abundant amount of water that allows irrigated agriculture to be carried out throughout the year, making the riverine areas of the two rivers traditionally the bread basket of Somalia. However, the two rivers are prone to flooding mainly because the bulk of their flow originate from the Ethiopian highlands, which receives very high rainfall during the rainy seasons. Additionally, farmers break the river banks to get water to their farms during the dry season. To minimize impacts of flooding, FAO SWALIM has developed a system for monitoring river breakages along River Juba and Shabelle by analyzing very high resolution images. The system started in 2014 and provides data and information on river breakages including potential, open and closed breakages.
+</p>
+        </div>
+      </div>
+
+ <div id="myModal_legend" class="modal modal-bg-black">
+
+              <!-- Modal content -->
+              <div class="modal-content">
+                <!-- <div id="map-legend"></div> -->
+                <span class="close">&times;</span>
+                <p style="font-size: 14; font-weight: bolder;">Legend</p>
+                <hr>
+                
+                <div class="row">
+                  <img style="float:left" src="{% static 'assets/img/boundary.png' %}" />
+                  <div class="col align-self-center">Boundary</div>
+                   <img style="float:left" src="{% static 'assets/img/river.png' %}" />
+                  <div class="col align-self-center">River</div>
+                 
+                </div>
+                <hr>
+                <div class="row">
+	          <img style="float:left" src="{% static 'assets/img/floodprone.png' %}" />
+                  <div class="col align-self-center">Flood Prone Area</div>	
+                   <img style="float:left" src="{% static 'assets/img/floods.png' %}" />
+                  <div class="col align-self-center">Flooded Area</div>
+		  <!-- <img style="float:left" src='http://188.166.39.65:81/static/assets/img/witnessed_floods.png'/>-->
+		  <!-- <div class="col align-self-center">"Witnessed" Floods</div>-->
+		 <!-- <img style="float:left" src='http://188.166.39.65:81/static/assets/img/aware_floods.png'/>-->
+		 <!-- <div class="col align-self-center">"Aware" Floods</div>-->
+                </div>
+                
+                
+
+
+              </div>
+
+            </div>
+
+
+
+
+
+
+	    <div id="myModal_addlayer" class="modal modal-bg-black">
+
+                    <!-- Modal content -->
+                    <div class="modal-content">
+                      <!-- <div id="map-legend"></div> -->
+                      <span class="close">&times;</span>
+                      <p style="font-size: 16; font-weight: bolder;">Add River Breakages</p>
+                      <hr>
+
+                     <div class="container">
+                      <hr>
+                       <select name="project" class="selectpicker year" >
+                           <option data-list="all">--Filter Year--</option>
+                           <option data-list="y2017">2017</option>
+                           <option data-list="y2018">2018</option>
+                           <option data-list="y2019">2019</option>
+                           <option data-list="y2020">2020</option>
+			   <option data-list="y2021">2021</option>
+                       </select>
+                       <select name="service" class="selectpicker month" data-style="btn-info">
+                           <option data-list="all">--Filter Month--</option>
+                           <option data-list="february">February</option>
+                           <option data-list="march">March</option>
+                           <option data-list="july">July</option>
+                           <option data-list="august">August</option>
+                           <option data-list="september">September</option>
+                       </select>
+
+                       <div class="container-fluid">
+                       <div class="col-md-12">
+                       <div class="row">
+                         <br>
+                         <ul class="list-group list-group-flush" id="myList">
+			   <li class="list-group-item project y2021 august">August 2021 <button type="button" class="btn btn-link myBtn2">add</button></li>
+                           <li class="list-group-item project y2021 march">March 2021 <button type="button" class="btn btn-link myBtn2">add</button></li>
+			   <li class="list-group-item project y2020 august">August 2020 <button type="button" class="btn btn-link myBtn2">add</button></li>
+                           <li class="list-group-item project y2020 march">March 2020 <button type="button" class="btn btn-link myBtn2">add</button></li>
+                           <li class="list-group-item project y2019 august">August 2019 <button type="button" class="btn btn-link myBtn2">add</button></li>
+                           <li class="list-group-item project y2019 february">February 2019 <button type="button" class="btn btn-link myBtn2">add</button></li>
+                           <li class="list-group-item project y2018 july">July 2018 <button type="button" class="btn btn-link myBtn2">add</button></li>
+                           <li class="list-group-item project y2018 february">February 2018 <button type="button" class="btn btn-link myBtn2">add</button></li>
+                           <li class="list-group-item project y2017 september">September 2017 <button type="button" class="btn btn-link myBtn2">add</button></li>
+                           <li class="list-group-item project y2017 february">February 2017 <button type="button" class="btn btn-link myBtn2">add</button></li>
+
+
+                         </ul>
+
+
+
+
+
+
+
+                       </div>
+
+                       </div>
+                       </div>
+                     </div>
+
+
+
+
+
+
+                    </div>
+
+                  </div>
+
+
+
+
+
+		  <div id="myModal_help1" class="modal modal-bg-white">
+
+                          <!-- Modal content -->
+                          <div class="modal-content">
+                            <!-- <div id="map-legend"></div> -->
+                            <span class="close">&times;</span>
+                            <p style="font-size: 16px ; font-weight: bolder;">Welcome to the Help Wizard!</p>
+                            <hr>
+
+                            <p style="font-size: 14px;">Please follow this wizard to quickly start using the tool. Click the next button to learn about each components.You can run this wizard again by clicking on the  Help button.</p><hr>
+
+                            <span style="font-size: 12px;">Step 1 of 8<br></span>
+
+
+
+
+                            <hr>
+                            <div class="modal-footer">
+                               <button type="button" class="btn btn-primary btn-sm btn-prev disabled">Prev</button>
+                               <button type="button" class="btn btn-primary btn-sm btn-next next_help">Next</button>
+
+                            </div>
+
+
+
+                          </div>
+
+                        </div>
+
+                        <div id="myModal_help2" class="modal modal-bg-white">
+
+                          <!-- Modal content -->
+                          <div class="modal-content">
+                            <!-- <div id="map-legend"></div> -->
+                            <span class="close">&times;</span>
+                            <p style="font-size: 16px ; font-weight: bolder;">Menu Bar</p>
+                            <hr>
+
+                            <p style="font-size: 14px;">The menu bar has the highlighted elements(Metadata, Add River BReakages, Change View) that users can interact with</p><hr>
+
+                            <span style="font-size: 12px;">Step 2 of 8<br></span>
+
+
+
+
+
+                            <div class="modal-footer">
+                               <button type="button" class="btn btn-primary btn-sm btn-prev next_help">Prev</button>
+                               <button type="button" class="btn btn-primary btn-sm btn-next next_help">Next</button>
+
+                            </div>
+
+
+
+                          </div>
+
+                        </div>
+
+
+
+                        <div id="myModal_help3" class="modal modal-bg-white">
+
+                          <!-- Modal content -->
+                          <div class="modal-content">
+                            <!-- <div id="map-legend"></div> -->
+                            <span class="close">&times;</span>
+                            <p style="font-size: 16px ; font-weight: bolder;">Metadata</p>
+                            <hr>
+
+                            <p style="font-size: 14px;">When clicked, the Metadata button opens up a window that contains information about the data within this application.For instance how it was produced and how current it is. </p><hr>
+
+                            <span style="font-size: 12px;">Step 3 of 8<br></span>
+
+
+
+
+
+                            <div class="modal-footer">
+                               <button type="button" class="btn btn-primary btn-sm btn-prev next_help">Prev</button>
+                               <button type="button" class="btn btn-primary btn-sm btn-next next_help">Next</button>
+
+                            </div>
+
+
+
+                          </div>
+
+                        </div>
+
+                        <div id="myModal_help4" class="modal modal-bg-white">
+
+                          <!-- Modal content -->
+                          <div class="modal-content">
+                            <!-- <div id="map-legend"></div> -->
+                            <span class="close">&times;</span>
+                            <p style="font-size: 16px ; font-weight: bolder;">Add River Breakages</p>
+                            <hr>
+
+                            <p style="font-size: 14px;">When Clicked, the add river breakages button opens up a window that contains filters, allowing a user to add river breakages to the map based on the selected filter. Once a user clicks on the add button, the river breakage is added to the map and the layer switcher. A user can add multiple river breakages. The layers can also be removed from the map using the remove layer button <span>&#x26d4</span></p><hr>
+
+                            <span style="font-size: 12px;">Step 4 of 8<br></span>
+
+
+
+
+
+                            <div class="modal-footer">
+                               <button type="button" class="btn btn-primary btn-sm btn-prev next_help">Prev</button>
+                               <button type="button" class="btn btn-primary btn-sm btn-next next_help">Next</button>
+
+                            </div>
+
+
+
+                          </div>
+
+                        </div>
+
+
+
+                        <div id="myModal_help5" class="modal modal-bg-white">
+
+                          <!-- Modal content -->
+                          <div class="modal-content">
+                            <!-- <div id="map-legend"></div> -->
+                            <span class="close">&times;</span>
+                            <p style="font-size: 16px ; font-weight: bolder;">Change View</p>
+                            <hr>
+
+                            <p style="font-size: 14px;">The 'Change View' button has a drop down that allows a user to switch between a 'split view' window and a 'single view' window. The split view window allows a user to comapare two flood seasons by dragging a bar across the map as shown in the image below. Users can add flood layers using the Add button on the layer switchers on either side of the map window </p><hr>
+
+                            <span style="font-size: 12px;">Step 5 of 8<br></span>
+
+
+
+
+
+                            <div class="modal-footer">
+                               <button type="button" class="btn btn-primary btn-sm btn-prev next_help">Prev</button>
+                               <button type="button" class="btn btn-primary btn-sm btn-next next_help">Next</button>
+
+                            </div>
+
+
+
+                          </div>
+
+                        </div>
+
+
+
+                        <div id="myModal_help6" class="modal modal-bg-white">
+
+                          <!-- Modal content -->
+                          <div class="modal-content">
+                            <!-- <div id="map-legend"></div> -->
+                            <span class="close">&times;</span>
+                            <p style="font-size: 16px ; font-weight: bolder;">Display Flood Extent</p>
+                            <hr>
+
+                            <p style="font-size: 14px;">This section contains filters that allows a user to filter the floods database based on year and season. When a user clicks the filter button, the map zooms in to the extent of the filtered floods layer </p><hr>
+
+                            <span style="font-size: 12px;">Step 6 of 8<br></span>
+
+
+
+
+
+                            <div class="modal-footer">
+                               <button type="button" class="btn btn-primary btn-sm btn-prev next_help">Prev</button>
+                               <button type="button" class="btn btn-primary btn-sm btn-next next_help">Next</button>
+
+                            </div>
+
+
+
+                          </div>
+
+                        </div>
+
+
+
+                        <div id="myModal_help7" class="modal modal-bg-white">
+
+                          <!-- Modal content -->
+                          <div class="modal-content">
+                            <!-- <div id="map-legend"></div> -->
+                            <span class="close">&times;</span>
+                            <p style="font-size: 16px ; font-weight: bolder;">Legend</p>
+                            <hr>
+
+                            <p style="font-size: 14px;">The legend contains all the explanation of the symbols used on the map. This window can be minimized and also dragged across the map.</p><hr>
+
+                            <span style="font-size: 12px;">Step 7 of 8<br></span>
+
+
+
+
+
+                            <div class="modal-footer">
+                               <button type="button" class="btn btn-primary btn-sm btn-prev next_help">Prev</button>
+                               <button type="button" class="btn btn-primary btn-sm btn-next next_help">Next</button>
+
+                            </div>
+
+
+
+                          </div>
+
+                        </div>
+
+
+                        <div id="myModal_help8" class="modal modal-bg-white">
+
+                          <!-- Modal content -->
+                          <div class="modal-content">
+                            <!-- <div id="map-legend"></div> -->
+                            <span class="close">&times;</span>
+                            <p style="font-size: 16px ; font-weight: bolder;">Map Elements</p>
+                            <hr>
+
+                            <p style="font-size: 14px;">The map has extra elements that improves the user interaction.
+                            <ul> 
+                            <li>The Zoom to District box has a drop down with a list of districts within the flood prone area. When a user selects the district, the map automaticall zooms in to the extent of the selected district. </li>
+                          <li>The layer switcher contains all the layers displayed on the map window. It allows users to switch layers on and off.The layers have been grouped according to themes. For instance the Boundaries theme contains the Districts and the Somalia Boundaries. Additionally, each theme can be clicked to either expand or minimize its content.</li>
+                          <li>The Zoom in and out buttons</li><br> </p><hr>
+
+                            <span style="font-size: 12px;">Step 8 of 8<br></span>
+
+
+
+
+
+                            <div class="modal-footer">
+                               <button type="button" class="btn btn-primary btn-sm btn-prev next_help">Prev</button>
+                               <button type="button" class="btn btn-primary btn-sm btn-next next_help disabled">Next</button>
+
+                            </div>
+
+
+
+                          </div>
+
+                        </div>
+
+
+
+                        <div id="myModal_help9" class="modal modal-bg-white">
+
+                          <!-- Modal content -->
+                          <div class="modal-content">
+                            <!-- <div id="map-legend"></div> -->
+                            <span class="close">&times;</span>
+                            <p style="font-size: 16px ; font-weight: bolder;">Layer Switcher</p>
+                            <hr>
+
+                            <p style="font-size: 14px;">The layer switcher panel has all the layers displayed on the map, allowing users to turn layers on and off. The layers have been grouped according to themes. For instance the Boundaries theme contains the Districts and the Somalia Boundaries. Additionally, each theme can be clicked to either expand or minimize its content.
+
+                             </p><hr>
+
+                            <span style="font-size: 12px;">Step 9 of 9<br></span>
+
+
+
+
+
+                            <div class="modal-footer">
+                               <button type="button" class="btn btn-primary btn-sm btn-prev next_help">Prev</button>
+                               <button type="button" class="btn btn-primary btn-sm btn-next disabled">Next</button>
+
+                            </div>
+
+
+
+                          </div>
+
+                        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <div class="card-body">
+        <div id="map" class="map" style="position: relative; outline: currentcolor none medium;height: 75vh;"></div>
+        <!-- <div id="basemaps-wrapper" class="leaflet-bar">
+          <select id="basemaps">
+            <option value="Topographic">Topographic</option>
+            <option value="Streets">Streets</option>
+            <option value="NationalGeographic">National Geographic</option>
+            <option value="Oceans">Oceans</option>
+            <option value="Gray">Gray</option>
+            <option value="DarkGray">Dark Gray</option>
+            <option value="Imagery">Imagery</option>
+            <option value="ImageryClarity">Imagery (Clarity)</option>
+            <option value="ImageryFirefly">Imagery (Firefly)</option>
+            <option value="ShadedRelief">Shaded Relief</option>
+            <option value="Physical">Physical</option>
+          </select>
+        </div> -->
+        <div id="map-filters" class="filters">
+           <p style="font-size: 14; font-weight: bolder;">Display flood extent</p><hr>
+          <p style="font-size: 12; ">Select year and season</p>
+          <form method="get" action="{% url 'webmap' %}" id="id_query_form" >
+              {{ form.year|as_crispy_field }}
+              {{ form.season|as_crispy_field }}
+              
+              
+              <p>
+                  <button class="btn btn-success btn-sm" id="filter-button" type="submit">Filter</button>
+                  <!-- <button type="reset" class="btn btn-info" value="Reset filters">Reset filters</button> -->
+                  <button type="reset" class="btn btn-warning btn-sm" id="id_clear_filters" onclick="return resetForm(this.form);">Clear Filters</button>
+              </p>
+          </form>
+        </div>
+
+
+	<!--  class="overflow-auto" -->
+        <div id="element1"  name="Legend">
+          <div class="content-legend">
+            
+            <hr>
+
+            <div class="row">
+              <div class="line line-boundary"></div>
+              <div class="col align-self-center">Boundary</div>
+               <div class="line line-water"></div>
+              <div class="col align-self-center">River</div>
+            </div>
+               
+            <hr>
+            <div class="row">
+               <div class="square floods-legend"></div>
+              <div class="col align-self-center">Floods</div>
+              <div class="square floodprone-legend"></div>
+              <div class="col align-self-center">Flood Prone</div>
+            </div>
+            <hr>
+            <div class="row">
+               <div class="circle-0"></div>
+              <div class="col align-self-center"><span style="font-weight:700; color: #B0171F">OPEN (O):  </span> Breakage point where a recent (< 1 year) flood originated is still open, and has no signs of intervention/rehabilitation on the latest analyzed images.
+</div>
+              
+            </div>
+            <hr>
+            <div class="row">
+                <div class="triangle-div-icon-Of"></div> 
+              <div class="col align-self-center"><span style="font-weight:700; color: #56090d">OVERFLOWS (Of):  </span> Portion of the river embankment where water overflows have recently occurred (< 1 year). Overflows generally take place along shallow portions of the embankments, which could be submerged for several hundred meters during the flood.</div>
+              
+            </div>
+
+            <hr>
+            <div class="row">
+               <div class="square-div-icon-P"></div>
+              <div class="col align-self-center"><span style="font-weight:700; color: #f7aa1b">POTENTIAL (P): </span> A point along the embankment where there is potential for flooding to occur. Clear indicators of flood potentiality, such as recent vegetation removal, embankment erosion, closed with sand bags, water spillage or other signs representing a potential embankment weakness have been identified. These indications are supported by DTM analysis, multi-temporal analysis and/or direct field observations.</div>
+              
+            </div>
+            <hr>
+            <div class="row">
+               <div class="circle-C"></div>
+              <div class="col align-self-center"><span style="font-weight:700; color: #026819">Closed (C):  </span> Breakage point where an old (>2 years) flood originated and that has been fixed using either heavy machinery or sandbags. No flooding has been detected recently, so this point may be considered CLOSED as the situation is stable. Interventions by heavy machinery are permanent, while those by sandbags are temporal, subject to new floods.</div>
+              
+            </div>
+              
+            </div>
+            
+          </div>
+       <!--  </div> -->
+
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock content %}
+
+<!-- Specific Page JS goes HERE  -->
+{% block javascripts %}
+
+<script src="{% static 'assets/js/interactive.js' %}"></script>
+<script type="text/javascript">
+  
+
+  // NO close function
+  let options_close =  {
+    close: false
+  };
+  interactive('element1', options_close);
+</script>
+
+
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+crossorigin=""></script>
+<!-- Load Esri Leaflet from CDN -->
+<script src="https://unpkg.com/esri-leaflet@2.5.1/dist/esri-leaflet.js"
+integrity="sha512-q7X96AASUF0hol5Ih7AeZpRF6smJS55lcvy+GLWzJfZN+31/BQ8cgNx2FGF+IQSA4z2jHwB20vml+drmooqzzQ=="
+crossorigin=""></script>
+<script src="{% static 'assets/js/styledLayerControl.js' %}"></script>
+
+<script src="{% static 'assets/js/Leaflet.CountrySelect.js' %}"></script>
+<script src="{% static 'assets/js/leaflet.legend.js' %}"></script>
+<!-- MapBox -->
+<script src="https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.js"></script>
+<script src="https://rawgithub.com/ismyrnow/Leaflet.groupedlayercontrol/master/src/leaflet.groupedlayercontrol.js"></script>
+
+<!-- VectorGrid -->
+<script type="text/javascript"  src="https://unpkg.com/leaflet.vectorgrid@1.2.0"></script>
+  <!-- <script type="text/javascript" src="../dist/Leaflet.VectorGrid.bundled.js"></script> -->
+<!-- GeoJSON-VT -->
+<script src="https://unpkg.com/geojson-vt@3.2.0/geojson-vt.js"></script>
+<!-- Include the loading control -->
+<script src="{% static 'assets/js/plugings/Control.Loading.js' %}"></script>
+<script src="{% static 'assets/js/leaflet.timeline.slider.js' %}"></script>
+<script type="text/javascript">
+  // Get the modal
+  var modal = document.getElementsByClassName('modal');
+var modal_close1 = document.getElementById('myModal');
+  var modal_close2 = document.getElementById('myModal_legend');
+var modal_close3 = document.getElementById('myModal_addlayer');
+
+
+    var modal_close4 = document.getElementById('myModal_help1');
+  var modal_close5 = document.getElementById('myModal_help2');
+  var modal_close6 = document.getElementById('myModal_help3');
+  var modal_close7 = document.getElementById('myModal_help4');
+  var modal_close8 = document.getElementById('myModal_help5');
+  var modal_close9 = document.getElementById('myModal_help6');
+  var modal_close10 = document.getElementById('myModal_help7');
+  var modal_close11 = document.getElementById('myModal_help8');
+  var modal_close12 = document.getElementById('myModal_help9');
+
+
+  // Get the button that opens the modal
+  var btn = document.getElementsByClassName("myBtn");
+var next_help = document.getElementsByClassName("next_help");
+var btn2 = document.getElementsByClassName("myBtn2");
+
+
+  // Get the <span> element that closes the modal
+  var span = document.getElementsByClassName("close");
+
+  // When the user clicks the button, open the modal 
+  btn[0].onclick = function() {
+      modal[0].style.display = "block";
+  }
+
+  
+
+btn[1].onclick = function() {
+
+      document.getElementById("card-header").style.zIndex = "";
+      document.getElementById("myBtn1").style.zIndex = "";
+      document.getElementById("myBtn4").style.zIndex = "";
+      document.getElementById("dropdownMenuButton").style.zIndex = "";
+      document.getElementById("map-filters").style.zIndex = "";
+      document.getElementById("parent_element1").style.zIndex = "";
+
+
+      modal[3].style.display = "block";
+      document.getElementsByClassName(".modal").style.backgroundColor = "red";
+
+
+  }
+
+
+  next_help[0].onclick = function() {
+      /*modal[4].modal('hide');
+      modal[0].style.display = "none";*/
+      modal[3].style.display = "none";
+      modal[4].style.display = "block";
+      document.getElementById("card-header").style.zIndex = "2000";
+  }
+
+  next_help[1].onclick = function() {
+      /*modal[4].modal('hide');*/
+      modal[4].style.display = "none";
+      modal[3].style.display = "block";
+      document.getElementById("card-header").style.zIndex = "";
+      /*document.getElementById("myBtn1").style.zIndex = "2000";*/
+  }
+
+  next_help[2].onclick = function() {
+      /*modal[4].modal('hide');
+      modal[0].style.display = "none";*/
+      modal[4].style.display = "none";
+      modal[5].style.display = "block";
+      document.getElementById("card-header").style.zIndex = "";
+      document.getElementById("myBtn1").style.zIndex = "2000";
+  }
+
+  next_help[3].onclick = function() {
+      /*modal[4].modal('hide');
+      modal[0].style.display = "none";*/
+      modal[5].style.display = "none";
+      modal[4].style.display = "block";
+      document.getElementById("myBtn1").style.zIndex = "";
+      document.getElementById("card-header").style.zIndex = "2000";
+  }
+
+
+
+  next_help[4].onclick = function() {
+      /*modal[4].modal('hide');
+      modal[0].style.display = "none";*/
+      modal[5].style.display = "none";
+      modal[6].style.display = "block";
+      document.getElementById("myBtn1").style.zIndex = "";
+      document.getElementById("myBtn4").style.zIndex = "2000";
+  }
+
+
+  next_help[5].onclick = function() {
+      /*modal[4].modal('hide');
+      modal[0].style.display = "none";*/
+      modal[6].style.display = "none";
+      modal[5].style.display = "block";
+      document.getElementById("myBtn4").style.zIndex = "";
+      document.getElementById("myBtn1").style.zIndex = "2000";
+  }
+
+
+  next_help[6].onclick = function() {
+      /*modal[4].modal('hide');
+      modal[0].style.display = "none";*/
+      modal[6].style.display = "none";
+      modal[7].style.display = "block";
+      document.getElementById("myBtn4").style.zIndex = "";
+      document.getElementById("dropdownMenuButton").style.zIndex = "2000";
+  }
+
+  next_help[7].onclick = function() {
+      /*modal[4].modal('hide');
+      modal[0].style.display = "none";*/
+      modal[7].style.display = "none";
+      modal[6].style.display = "block";
+      document.getElementById("dropdownMenuButton").style.zIndex = "";
+      document.getElementById("myBtn4").style.zIndex = "2000";
+  }
+
+  next_help[8].onclick = function() {
+      /*modal[4].modal('hide');
+      modal[0].style.display = "none";*/
+      modal[7].style.display = "none";
+      modal[8].style.display = "block";
+      document.getElementById("dropdownMenuButton").style.zIndex = "";
+      document.getElementById("map-filters").style.zIndex = "2000";
+  }
+
+  next_help[9].onclick = function() {
+      /*modal[4].modal('hide');
+      modal[0].style.display = "none";*/
+      modal[8].style.display = "none";
+      modal[7].style.display = "block";
+      document.getElementById("map-filters").style.zIndex = "";
+      document.getElementById("dropdownMenuButton").style.zIndex = "2000";
+  }
+
+  next_help[10].onclick = function() {
+      /*modal[4].modal('hide');
+      modal[0].style.display = "none";*/
+      modal[8].style.display = "none";
+      modal[9].style.display = "block";
+      document.getElementById("map-filters").style.zIndex = "";
+      document.getElementById("parent_element1").style.zIndex = "2000";
+  }
+
+  next_help[11].onclick = function() {
+      /*modal[4].modal('hide');
+      modal[0].style.display = "none";*/
+      modal[9].style.display = "none";
+      modal[8].style.display = "block";
+      document.getElementById("parent_element1").style.zIndex = "";
+      document.getElementById("map-filters").style.zIndex = "2000";
+  }
+
+  next_help[12].onclick = function() {
+      /*modal[4].modal('hide');
+      modal[0].style.display = "none";*/
+      modal[9].style.display = "none";
+      modal[10].style.display = "block";
+      document.getElementById("parent_element1").style.zIndex = "";
+      document.getElementById("map").style.zIndex = "unset";
+  }
+
+
+  next_help[13].onclick = function() {
+      /*modal[4].modal('hide');
+      modal[0].style.display = "none";*/
+      modal[10].style.display = "none";
+      modal[9].style.display = "block";
+      document.getElementById("map").style.zIndex = "400";
+      document.getElementById("leaflet-countryselect").style.zIndex = "";
+      document.getElementById("parent_element1").style.zIndex = "2000";
+  }
+
+
+  next_help[14].onclick = function() {
+      /*modal[4].modal('hide');
+      modal[0].style.display = "none";*/
+      modal[10].style.display = "none";
+      modal[11].style.display = "block";
+      document.getElementById("leaflet-countryselect-container").style.zIndex = "";
+      document.getElementById("leaflet-control-layers").style.zIndex = "2000";
+  }
+
+  next_help[15].onclick = function() {
+      /*modal[4].modal('hide');
+      modal[0].style.display = "none";*/
+      modal[11].style.display = "none";
+      modal[10].style.display = "block";
+      document.getElementById("leaflet-control-layers").style.zIndex = "";
+      document.getElementById("leaflet-countryselect-container").style.zIndex = "2000";
+  }
+
+
+
+
+btn[2].onclick = function() {
+      modal[2].style.display = "block";
+  }
+
+
+
+  btn2[0].onclick = function() {
+      River_Breakage_August_2021.addTo(map);
+      control.addOverlay(River_Breakage_August_2021, "August 2021", {groupName : "Breakages",expanded:true} );
+      control.unSelectLayer( River_Breakage_August_2021 );
+  }
+
+  btn2[1].onclick = function() {
+      River_Breakage_March_2021.addTo(map);
+      control.addOverlay(River_Breakage_March_2021, "March 2021", {groupName : "Breakages",expanded:true} );
+      control.unSelectLayer( River_Breakage_March_2021 );
+  }
+
+  btn2[2].onclick = function() {
+      River_Breakage_August_2020.addTo(map);
+      control.addOverlay(River_Breakage_August_2020, "August 2020", {groupName : "Breakages",expanded:true} );
+      control.unSelectLayer( River_Breakage_August_2020 );
+  }
+
+  btn2[3].onclick = function() {
+      River_Breakage_March_2020.addTo(map);
+      control.addOverlay(River_Breakage_March_2020, "March 2020", {groupName : "Breakages",expanded:true} );
+      control.unSelectLayer( River_Breakage_March_2020 );
+  }
+
+  btn2[4].onclick = function() {
+      River_Breakage_August_2019.addTo(map);
+      control.addOverlay(River_Breakage_August_2019, "August 2019", {groupName : "Breakages",expanded:true} );
+      control.unSelectLayer( River_Breakage_August_2019 );
+  }
+
+  btn2[5].onclick = function() {
+      River_Breakage_February_2019.addTo(map);
+      control.addOverlay(River_Breakage_February_2019, "February 2019", {groupName : "Breakages",expanded:true} );
+      control.unSelectLayer( River_Breakage_February_2019 );
+  }
+
+  btn2[6].onclick = function() {
+      River_Breakage_July_2018.addTo(map);
+      control.addOverlay(River_Breakage_July_2018, "July 2018", {groupName : "Breakages",expanded:true} );
+      control.unSelectLayer( River_Breakage_July_2018 );
+  }
+
+  btn2[7].onclick = function() {
+      River_Breakage_February_2018.addTo(map);
+      control.addOverlay(River_Breakage_February_2018, "February 2018", {groupName : "Breakages",expanded:true} );
+      control.unSelectLayer( River_Breakage_February_2018 );
+  }
+
+  btn2[8].onclick = function() {
+      River_Breakage_September_2017.addTo(map);
+      control.addOverlay(River_Breakage_September_2017, "September 2017", {groupName : "Breakages",expanded:true} );
+      control.unSelectLayer( River_Breakage_September_2017 );
+  }
+
+  btn2[9].onclick = function() {
+      River_Breakage_February_2017.addTo(map);
+      control.addOverlay(River_Breakage_February_2017, "February 2017", {groupName : "Breakages",expanded:true} );
+      control.unSelectLayer( River_Breakage_February_2017 );
+  }
+
+
+
+
+
+
+
+
+  // When the user clicks on <span> (x), close the modal
+  span[2].onclick = function() {
+      modal[2].style.display = "none";
+  }
+
+  span[0].onclick = function() {
+      modal[0].style.display = "none";
+  }
+
+  span[3].onclick = function() {
+      modal[3].style.display = "none";
+  }
+
+ span[4].onclick = function() {
+      modal[4].style.display = "none";
+
+  }
+
+  span[5].onclick = function() {
+    modal[5].style.display = "none";
+
+  }
+
+  span[6].onclick = function() {
+    modal[6].style.display = "none";
+
+  }
+
+  span[7].onclick = function() {
+    modal[7].style.display = "none";
+
+  }
+
+  span[8].onclick = function() {
+    modal[8].style.display = "none";
+
+  }
+
+  span[9].onclick = function() {
+     modal[9].style.display = "none";
+
+  }
+
+  span[10].onclick = function() {
+    modal[10].style.display = "none";
+
+  }
+
+  span[11].onclick = function() {
+    modal[11].style.display = "none";
+
+  }
+
+  span[12].onclick = function() {
+    modal[12].style.display = "none";
+
+  }
+  // When the user clicks anywhere outside of the modal, close it
+  window.onclick = function(event) {
+      if (event.target == modal_close1) {
+          modal_close1.style.display = "none";
+      }
+      if (event.target == modal_close2) {
+          modal_close2.style.display = "none";
+      }
+      if (event.target == modal_close3) {
+          modal_close3.style.display = "none";
+      }
+	  if (event.target == modal_close4) {
+          modal_close4.style.display = "none";
+      }
+      if (event.target == modal_close5) {
+          modal_close5.style.display = "none";
+      }
+      if (event.target == modal_close6) {
+
+          modal_close6.style.display = "none";
+      }
+      if (event.target == modal_close7) {
+
+          modal_close7.style.display = "none";
+      }
+      if (event.target == modal_close8) {
+
+          modal_close8.style.display = "none";
+      }
+      if (event.target == modal_close9) {
+
+          modal_close9.style.display = "none";
+      }
+      if (event.target == modal_close10) {
+
+          modal_close10.style.display = "none";
+      }
+      if (event.target == modal_close11) {
+
+          modal_close11.style.display = "none";
+      }
+      if (event.target == modal_close12) {
+
+          modal_close12.style.display = "none";
+      }
+  }
+
+/*  window.onclick = function(event) {
+      if (event.target == modal_close2) {
+          modal_close2.style.display = "none";
+      }
+  }*/
+
+
+$(document).ready(function(){
+
+  $('select').on('change',function(){
+  var struct=$('.year').find(':selected').attr('data-list');
+  var serv=$('.month').find(':selected').attr('data-list');
+  $('.project').each(function() {
+  var classList = $(this).attr('class').split(/\s+/);
+  //console.log(classList);
+  if(struct==='all' && serv==='all') {
+  $('.project').show();
+  } else if(struct==='all' || serv==='all') {
+  $(this).toggle((classList.includes(struct) || classList.includes(serv)));
+  } else{
+  $(this).toggle((classList.includes(struct) && classList.includes(serv)));
+  }
+  });
+
+  });
+  });
+
+
+
+
+</script>
+<script>
+
+// var season=  {{ season | json }};
+// var year=  {{ year | json }};
+// var total=  {{ total | json  }};
+// var agri=  {{ agri | json  }};
+// var houses=  {{ houses | json  }};
+
+var season = document.getElementById('id_season').value;
+var year = document.getElementById('id_year').value;
+// var total = document.getElementById('total').value;
+// var agri = document.getElementById('agri').value;
+// var houses = document.getElementById('houses').value;
+
+console.log("Season")
+console.log(season)
+console.log("Year")
+console.log(year)
+// console.log("Total")
+// console.log(total)
+// console.log("Agri")
+// console.log(agri)
+// console.log("Houses")
+// console.log(houses)
+
+// var CQL_FILTER = {{ cql_filter|json}};
+var CQL_FILTER = "season='"+season+"'"+"AND "+"year='"+year+"'";
+// +"AND "+"total<='"+total+"'"+"AND "+"agri<='"+agri+"'"+"AND "+"houses<='"+houses+"'";
+
+console.log("CQL FILTER")
+console.log(CQL_FILTER)
+
+var bounds = [
+    [-1.436824506, 40.28014236], // Southwest coordinates
+    [11.739590155, 55.07241517] // Northeast coordinates
+];
+
+/*var map = L.map('map').setView([1.8, 42.5], 7);*/
+/*var layer = L.esri.basemapLayer('Topographic').addTo(map);*/
+/*var layerLabels;*/
+
+
+
+
+
+var osmLink = '<a href="http://openstreetmap.org">OpenStreetMap</a>',
+  thunLink = '<a href="http://thunderforest.com/">Thunderforest</a>';
+
+var osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  osmAttrib = '&copy; ' + osmLink + ' Contributors',
+  landUrl = 'http://{s}.tile.thunderforest.com/landscape/{z}/{x}/{y}.png',
+  thunAttrib = '&copy; '+osmLink+' Contributors & '+thunLink;
+
+var mapUrl = 'http://otile4.mqcdn.com/tiles/1.0.0/sat/{z}/{x}/{y}.png',
+  mapAttrib = '&copy; ' + osmLink + ' Contributors';
+
+var osmMap = L.tileLayer(osmUrl, {attribution: osmAttrib}),
+  landMap = L.tileLayer(landUrl, {attribution: thunAttrib});
+
+var aerial= L.tileLayer(mapUrl, {attribution: mapAttrib});
+
+var googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
+    maxZoom: 20,
+    subdomains:['mt0','mt1','mt2','mt3']
+});
+
+var googleStreets = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{
+    maxZoom: 20,
+    subdomains:['mt0','mt1','mt2','mt3']
+});
+
+
+
+var map = L.map('map',{
+  layers: [osmMap],
+  keyboard: true,
+  boxZoom: true,
+  zoomControl: true,
+  //measureControl: true,
+  doubleClickZoom: true,
+  scrollWheelZoom: true,
+  fullscreenControl: true,
+  fullscreenControlOptions: {
+  position: 'topleft'
+  } 
+  }).setView([1.8, 42.5], 5);
+  mapLink ='<a href="http://openstreetmap.org">OpenStreetMap</a>';
+  L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: 'Map data &copy; ' + mapLink,
+          maxZoom:32,
+          }).addTo(map);
+
+
+
+var select = L.countrySelect({exclude:"French Southern and Antarctic Lands"});
+
+  select.addTo(map);
+
+  select.on('change', function(e){
+    if (e.feature === undefined){ //Do nothing on title
+      return;
+    }
+    var country = L.geoJson(e.feature,{style: function(feature) {return {color: '#ef05fb00'};}}
+);
+    if (this.previousCountry != null){
+      map.removeLayer(this.previousCountry);
+    }
+    this.previousCountry = country;
+
+    map.addLayer(country);
+    map.fitBounds(country.getBounds());
+
+  });
+
+
+
+/*function setBasemap (basemap) {
+  if (layer) {
+    map.removeLayer(layer);
+  }
+
+  layer = L.esri.basemapLayer(basemap);
+
+  map.addLayer(layer);
+
+  if (layerLabels) {
+    map.removeLayer(layerLabels);
+  }
+
+  if (
+    basemap === 'ShadedRelief' ||
+    basemap === 'Oceans' ||
+    basemap === 'Gray' ||
+    basemap === 'DarkGray' ||
+    basemap === 'Terrain'
+  ) {
+    layerLabels = L.esri.basemapLayer(basemap + 'Labels');
+    map.addLayer(layerLabels);
+  } else if (basemap.includes('Imagery')) {
+    layerLabels = L.esri.basemapLayer('ImageryLabels');
+    map.addLayer(layerLabels);
+  }
+}
+
+document.querySelector('#basemaps').addEventListener('change', function (e) {
+  var basemap = e.target.value;
+  setBasemap(basemap);
+});
+*/
+
+
+
+
+/*
+ var baseLayers = {
+            'Stamen Toner': defaultBase,
+            'USGS TNM': L.tileLayer.provider('USGSTNM'),
+            'ESRI Imagery': L.tileLayer.provider('Esri.WorldImagery'),
+            'ESRI Ocean Basemap': L.tileLayer.provider('Esri.OceanBasemap'),
+            'OSM Topo': L.tileLayer.provider('OpenTopoMap')
+        };*/
+
+
+
+
+
+
+
+
+
+
+var aware_floods = new L.tileLayer.wms('http//floods.faoswalim.org:8080/geoserver/wms', {
+  layers: 'floods:Aware_Floods',
+  format: 'image/png',
+  transparent: true,
+  overlay:true,
+})/*.addTo(map)*/;
+
+var witnessed_floods = new L.tileLayer.wms('https://floods.faoswalim.org:8443/geoserver/wms', {
+  layers: 'floods:Witnessed_Floods',
+  format: 'image/png',
+  transparent: true,
+  overlay:true,
+})/*.addTo(map)*/;
+
+
+
+
+
+
+var regions = new L.tileLayer.wms('https://spatial.faoswalim.org/geoserver/wms', {
+  layers: 'geonode:SOM_Adminbnda_Adm2_Regions_UNOCHA',
+  format: 'image/png',
+  transparent: true,
+  overlay:true,
+});
+
+
+var districts = new L.tileLayer.wms('https://spatial.faoswalim.org/geoserver/wms', {
+  layers: 'geonode:SOM_Adminbnda_Adm3_Districts_UNOCHA',
+  format: 'image/png',
+  transparent: true,
+  overlay:true,
+}).addTo(map);
+
+
+
+var somalia = new L.tileLayer.wms('https://spatial.faoswalim.org/geoserver/wms', {
+  layers: 'geonode:SOM_Adminbnda_Adm0_Country_UNOCHA',
+  format: 'image/png',
+  transparent: true,
+  overlay:true,
+});
+
+
+/*var river_juba_shabelle = new L.tileLayer.wms('https://spatial.faoswalim.org/geoserver/wms', {
+  layers: 'geonode:SOM_Rivers_Juba_shabelle_line_FAOSWALIM',
+  format: 'image/png',
+  transparent: true,
+  overlay:true,
+}).addTo(map);*/
+
+
+var flood_prone = new L.tileLayer.wms('https://spatial.faoswalim.org/geoserver/wms', {
+  layers: 'geonode:Som_Flood_Prone_areas_20200',
+  format: 'image/png',
+  transparent: true,
+  opacity:0.3,
+  overlay:true,
+}).addTo(map);
+
+
+
+
+
+
+
+
+
+var river_juba_shabelle = new L.tileLayer.wms('https://spatial.faoswalim.org/geoserver/wms', {
+  layers: 'geonode:SOM_Rivers_Juba_shabelle_line_FAOSWALIM',
+  format: 'image/png',
+  transparent: true,
+  overlay:true,
+}).addTo(map);
+
+/*floods.addTo(map);*/
+/*map.addLayer(floods);*/
+
+
+
+
+/*var tasmania = new L.TileLayer.WMS('http://demo.opengeo.org/geoserver/wms', {
+  layers: 'topp:tasmania',
+  format: 'image/png',
+  transparent: true,
+  version: '1.3.0',
+  crs: L.CRS.EPSG4326
+}).addTo(map);*/
+
+
+
+
+
+
+var River_Breakage_August_2021 = new L.tileLayer.wms('https://spatial.faoswalim.org/geoserver/wms', {
+  layers: 'geonode:River_Juba_Shabelle_Breakage_Aug2021_26082021',
+  format: 'image/png',
+  transparent: true,
+  checked:false,
+  overlay:true,
+});
+
+var River_Breakage_March_2021 = new L.tileLayer.wms('https://spatial.faoswalim.org/geoserver/wms', {
+  layers: 'geonode:River_Juba_Shabelle_Breakages_Feb_2021',
+  format: 'image/png',
+  transparent: true,
+  checked:false,
+  overlay:true,
+});
+	
+
+
+var River_Breakage_August_2020 = new L.tileLayer.wms('https://spatial.faoswalim.org/geoserver/wms', {
+  layers: 'geonode:Shabelle_Juba_Aug_2020FRRMIS_',
+  format: 'image/png',
+  transparent: true,
+  checked:false,
+  overlay:true,
+});
+
+
+var River_Breakage_March_2020 = new L.tileLayer.wms('https://spatial.faoswalim.org/geoserver/wms', {
+  layers: 'geonode:Shabelle_Juba_Feb_2020FRRMIS',
+  format: 'image/png',
+  transparent: true,
+  checked:false,
+  overlay:true,
+});
+
+
+var River_Breakage_August_2019 = new L.tileLayer.wms('https://spatial.faoswalim.org/geoserver/wms', {
+  layers: 'geonode:Shabelle_Juba_River_Breakages_Aug2019',
+  format: 'image/png',
+  transparent: true,
+  checked:false,
+  overlay:true,
+})
+
+var River_Breakage_February_2019 = new L.tileLayer.wms('https://spatial.faoswalim.org/geoserver/wms', {
+  layers: 'geonode:Shabelle_Juba_River_Breakages_Feb2019',
+  format: 'image/png',
+  transparent: true,
+  checked:false,
+  overlay:true,
+})
+
+var River_Breakage_July_2018 = new L.tileLayer.wms('https://spatial.faoswalim.org/geoserver/wms', {
+  layers: 'geonode:Shabelle_Juba_River_Breakages_July2018',
+  format: 'image/png',
+  transparent: true,
+  checked:false,
+  overlay:true,
+})
+
+var River_Breakage_February_2018 = new L.tileLayer.wms('https://spatial.faoswalim.org/geoserver/wms', {
+  layers: 'geonode:Shabelle_Juba_River_Breakages_Feb_2018',
+  format: 'image/png',
+  transparent: true,
+  checked:false,
+  overlay:true,
+})
+
+
+var River_Breakage_September_2017 = new L.tileLayer.wms('https://spatial.faoswalim.org/geoserver/wms', {
+  layers: 'geonode:Shabelle_Juba_River_Breakages_Sept2017',
+  format: 'image/png',
+  transparent: true,
+  checked:false,
+  overlay:true,
+})
+
+var River_Breakage_February_2017 = new L.tileLayer.wms('https://spatial.faoswalim.org/geoserver/wms', {
+  layers: 'geonode:Shabelle_Juba_River_Breakages_Feb2017',
+  format: 'image/png',
+  transparent: true,
+  checked:false,
+  overlay:true,
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*var rootUrl = 'http://165.227.66.162:8080/geoserver/ows';
+
+var defaultParameters = {
+    
+    service: 'WFS',
+    version: '1.0.0',
+    request: 'GetFeature',
+    typeName: 'floods:app_floods2',*/
+    /*maxFeatures: 200,*/
+   /* outputFormat: 'text/javascript',*/
+    /*format_options: 'callback: getJson',
+    srsName:'EPSG:4326'*/
+
+/*};
+
+var parameters = L.Util.extend(defaultParameters);*/
+//console.log(rootUrl + L.Util.getParamString(parameters));
+/*$.ajax({
+    jsonp : false,
+    url: rootUrl + L.Util.getParamString(parameters),
+    dataType: 'jsonp',
+    jsonpCallback: 'getJson',
+    success: handleJson
+});
+
+function handleJson(data) {
+    L.geoJson(data, {
+        onEachFeature: onEachFeature,
+        pointToLayer: function (feature, latlng) {
+            return L.circleMarker(latlng, geojsonMarkerOptions);*/
+            //return L.marker(latlng);
+/*        }
+    }).addTo(map);
+}
+*/
+
+
+
+
+
+
+
+
+/*var wmsURL='http://belstone.nationalparks.gov.uk/geoserver/general/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&QUERY_LAYERS=general:tpo_points&LAYERS=general:tpo_points&INFO_FORMAT=text/javascript&FEATURE_COUNT=5&X=50&Y=50&SRS=EPSG:27700&WIDTH=101&HEIGHT=101&BBOX=269291.6026625545,66769.35257397332,277003.10021540907,74480.85012682788&format_options=callback:getJson'
+
+    
+    $.ajax({
+    jsonp : false,
+    url: wmsURL,
+    dataType: 'jsonp',
+    jsonpCallback: 'getJson',
+    success: handleJson_featureRequest
+});
+    
+function handleJson_featureRequest (data) {
+console.log("GetFeatureInfo-Request: ");
+console.log(data);
+}*/
+
+
+
+
+
+
+
+
+
+
+
+
+var aware_icon = L.icon({
+        iconUrl: 'http://188.166.39.65:81/static/assets/img/aware_floods.png', 
+        /*shadowUrl: 'leaf-shadow.png',
+        iconSize: [38, 95], 
+        shadowSize:   [50, 64], 
+        iconAnchor:   [22, 94], 
+        shadowAnchor: [4, 62],  
+        popupAnchor:  [-3, -76] */
+    });
+
+
+var witness_icon = L.icon({
+        iconUrl: 'http://188.166.39.65:81/static/assets/img/witnessed_floods.png', 
+        
+    });
+
+
+
+$.ajax('http://floods.faoswalim.org:8080/geoserver/ows',{
+  type: 'GET',
+  data: {
+      service: 'WFS',
+      version: '1.0.0',
+      request: 'GetFeature',
+      typename: 'floods:Aware_Floods',
+      srsname: 'EPSG:4326',
+      outputFormat: 'text/javascript',
+      },
+  dataType: 'jsonp',
+  jsonpCallback:'callback:handleJson2',
+  jsonp:'format_options'
+  });
+
+function handleJson2(data) {
+    var aware = L.geoJson(data,{
+      style: function(feature) {
+              return {color: '#ef05fb'};
+      },
+      onEachFeature:function(feature,layer){
+        layer.bindPopup('<h5> Date Reported :'+feature.properties._CREATION_DATE+'</h5><h5> Village Name: '+feature.properties.VILLAGE_NAME+'</5><h5>Status: '+feature.properties.VILLAGE_DESCRIPTION+'</5><h5> Photo:<br> <img src=" '+'http://188.166.39.65:8080/ODKAggregate/view/binaryData?blobKey=snapshot_xml%5B%40version%3Dnull+and+%40uiVersion%3Dnull%5D%2Fdata%5B%40key%3Duuid%3A'+feature.properties._URI.slice(5)+'%5D%2FKindly_upload_a_phot_of_the_flooded_area'+'"/></5>');
+        layer.setIcon(aware_icon);
+      }
+
+    })/*.addTo(map)*/;
+    /*controlLayers.addOverlay(geojsonLayer, 'My GeoJSON layer title');*/
+    /*layercontrol.addOverlay(requiredArea, "Filtered Floods&nbsp;<img src='{% static 'assets/img/floods.png' %}'>")*/
+    control.addOverlay(aware, "Aware", {groupName : "Reported Floods",expanded:true} );
+    /*map.fitBounds(requiredArea.getBounds())*/
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+$.ajax('http://floods.faoswalim.org:8080/geoserver/ows',{
+  type: 'GET',
+  data: {
+      service: 'WFS',
+      version: '1.0.0',
+      request: 'GetFeature',
+      typename: 'floods:Witnessed_Floods',
+      srsname: 'EPSG:4326',
+      outputFormat: 'text/javascript',
+      },
+  dataType: 'jsonp',
+  jsonpCallback:'callback:handleJson3',
+  jsonp:'format_options'
+  });
+
+function handleJson3(data) {
+    var witnessed = L.geoJson(data,{
+      style: function(feature) {
+              return {color: '#ef05fb'};
+      },
+      onEachFeature:function(feature,layer){
+        layer.bindPopup('<h5> Date Reported :'+feature.properties._CREATION_DATE+'</h5><h5>Village Name: '+feature.properties.PROFILE_OF_THE_AREA_WHAT_IS_THE_NAME_OF_NG_HAS_BEEN_REPORTED+'</5><h5>Status: '+feature.properties.PROFILE_OF_THE_AREA_STATUS_OF_FLOODED+'</5><h5> Photo:<br> <img src=" '+'http://188.166.39.65:8080/ODKAggregate/view/binaryData?blobKey=snapshot_xml%5B%40version%3Dnull+and+%40uiVersion%3Dnull%5D%2Fdata%5B%40key%3Duuid%3A'+feature.properties._URI.slice(5)+'%5D%2Fprofile_of_the_area%3AKindly_take_a_photo_hat_has_been_flooded'+'"/></5>');
+        layer.setIcon(witness_icon);
+      }
+
+    })/*.addTo(map)*/;
+    /*controlLayers.addOverlay(geojsonLayer, 'My GeoJSON layer title');*/
+    /*layercontrol.addOverlay(requiredArea, "Filtered Floods&nbsp;<img src='{% static 'assets/img/floods.png' %}'>")*/
+    control.addOverlay(witnessed, "Witnessed", {groupName : "Reported Floods",expanded:true} );
+    /*map.fitBounds(requiredArea.getBounds())*/
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+$.ajax('https://floods.faoswalim.org:8443/geoserver/ows',{
+  type: 'GET',
+  data: {
+      service: 'WFS',
+      version: '1.0.0',
+      request: 'GetFeature',
+      typename: 'floods:app_floods2',
+      CQL_FILTER: CQL_FILTER,
+      srsname: 'EPSG:4326',
+      outputFormat: 'text/javascript',
+      },
+  dataType: 'jsonp',
+  jsonpCallback:'callback:handleJson',
+  jsonp:'format_options'
+  });
+
+
+function handleJson(data) {
+    var requiredArea = L.geoJson(data,{
+     style: function(feature) {
+              return {color: '#ef05fb'};
+      },
+      onEachFeature:function(feature,layer){
+        layer.bindPopup('<h5> Total Area Flooded :'+feature.properties.total+'</h5><h5>Totol Agricultural Land Flooded: '+feature.properties.agri+'</5><h5>Totol Population Affected: '+feature.properties.population+'</5>');
+      }
+
+    }).addTo(map);
+    /*controlLayers.addOverlay(geojsonLayer, 'My GeoJSON layer title');*/
+   
+   /* layercontrol.addOverlay(requiredArea, "Filtered Floods&nbsp;<img src='{% static 'assets/img/floods.png' %}'>")*/
+   /*layercontrol.addOverlay(requiredArea, "Filtered Floods&nbsp;<img src='{% static 'assets/img/floods.png' %}'>")*/
+    control.addOverlay(requiredArea, "Filtered Floods", {groupName : "Water"} );
+    map.fitBounds(requiredArea.getBounds())
+}
+
+
+
+var overlays = [
+{
+  groupName:"Water",
+  expanded:true,
+  layers:{
+    
+    "Flood Prone Areas":flood_prone,
+    "River Juba & Shabelle": river_juba_shabelle,
+    
+
+  }
+},{
+  groupName:"Boundaries",
+  expanded:false,
+  layers:{
+    "Somalia Boundary": somalia,
+    /*"Regions": regions,*/
+    "Districts": districts
+  
+  }
+},{
+  groupName:"Breakages",
+  expanded:true,
+  layers:{
+    
+  
+  }
+}
+
+
+];
+
+
+
+
+River_Breakage_August_2021.StyledLayerControl = {
+    removable : true,
+    visible : false
+
+  }
+
+
+
+River_Breakage_March_2021.StyledLayerControl = {
+    removable : true,
+    visible : false
+
+  }
+
+
+River_Breakage_August_2020.StyledLayerControl = {
+    removable : true,
+
+  }
+
+River_Breakage_March_2020.StyledLayerControl = {
+      removable : true,
+           
+    }
+
+River_Breakage_August_2019.StyledLayerControl = {
+    removable : true,
+
+  }
+
+River_Breakage_February_2019.StyledLayerControl = {
+      removable : true,
+           
+    }
+
+River_Breakage_July_2018.StyledLayerControl = {
+    removable : true,
+
+  }
+
+River_Breakage_February_2018.StyledLayerControl = {
+      removable : true,
+           
+    }
+
+River_Breakage_September_2017.StyledLayerControl = {
+    removable : true,
+
+  }
+
+River_Breakage_February_2017.StyledLayerControl = {
+      removable : true,
+           
+    }
+
+
+
+
+
+/*var groupOverLays = {
+
+
+  "Boundaries&nbsp;<img src='{% static 'assets/img/boundary.png' %}'>": {
+
+    "Somalia Boundary": somalia,
+    "Regions": regions,
+    "Districts": districts
+            },
+
+  "Water": {
+	"Flood Prone Areas&nbsp;<img src='{% static 'assets/img/floodprone.png' %}'>": flood_prone,  
+    "River Juba & Shabelle&nbsp;<img src='{% static 'assets/img/river.png' width='24' height='10' %}'>": river_juba_shabelle,
+    
+    
+            }
+        };*/
+
+
+/*add layer switch control*/
+
+/*L.control.groupedLayers(groupOverLays).addTo(map);*/
+
+
+
+/*var baseLayers = {
+  "OpenStreetMap": osmMap,
+  "Google Satellite":googleSat,
+  "Google Streets":googleStreets
+};*/
+/*var overlays = {
+  "Somalia Boundary": somalia,
+  "Regions": regions,
+  "Districts": districts,
+  "River Juba & Shabelle": river_juba_shabelle
+};*/
+
+
+
+/*L.control.layers(baseLayers,overlays,{collapsed:true}).addTo(map);*/
+
+
+
+	
+/*var layercontrol = L.control.groupedLayers(baseLayers,groupOverLays,{collapsed:false}).addTo(map);*/
+
+
+
+
+
+
+var baseLayers = [{
+  groupName: "Base Maps",
+  expanded: false,
+  layers:{
+    "OpenStreetMap": osmMap,
+    "Google Satellite":googleSat,
+    "Google Streets":googleStreets
+  }
+}];
+
+
+
+var options = {
+  container_width   : "180px",
+  group_maxHeight     : "80px",
+  //container_maxHeight : "350px", 
+  exclusive         : false,
+  collapsed : false, 
+  position: 'topright'
+};
+
+var control = L.Control.styledLayerControl(baseLayers, overlays, options);
+map.addControl(control);
+
+
+
+
+
+var  customlegend = L.control.Legend({
+            position: "bottomleft",
+            collapsed: false,
+            symbolWidth: 24,
+            opacity: 1,
+            column: 2,
+            legends: [/*{
+                label: "Marker1",
+                type: "image",
+                url: "marker/marker-red.png",
+            }, {
+                label: "Circle",
+                type: "circle",
+                radius: 6,
+                color: "blue",
+                fillColor: "#FF0000",
+                fillOpacity: 0.6,
+                weight: 2,
+                layers: [marker],
+                inactive: true,
+            },*/ {
+                label: "Boundary",
+                type: "polyline",
+                color: "#6e6e6e",
+                fillColor: "#6e6e6e",
+                weight: 2/*,
+                layers:regions*/
+
+            }, {
+                label: "River",
+                type: "polyline",
+                color: "#4e86fc",
+                fillColor: "#4e86fc",
+                weight: 2/*,
+                layers:river_juba_shabelle*/
+
+            },/*{
+                label: "Dotted line",
+                type: "polyline",
+                color: "#0000FF",
+                fillColor: "#0000FF",
+                dashArray: [5, 5],
+                weight: 2
+            }, {
+                label: "Rectangle",
+                type: "rectangle",
+                color: "#FF0000",
+                fillColor: "#FF0000",
+                weight: 2
+            },*/ {
+                label: "Flood Prone Areas",
+                type: "polygon",
+                sides: 4,
+                color: "#ff5404",
+                fillColor: "#ff5404",
+                weight: 2/*,
+                layers:flood_prone*/
+            }, {
+                label: "Flooded Area",
+                type: "polygon",
+                sides: 4,
+                color: "#fc14fa",
+                fillColor: "#fc14fa",
+                fillOpacity: 0.5,
+                weight: 2/*,
+                layers:requiredArea*/
+            }/*,{
+                label: "Regular triangle",
+                type: "polygon",
+                sides: 3,
+                color: "#FF0000",
+                fillColor: "#FF0000",
+                weight: 2
+            }, {
+                label: "Regular polygon",
+                type: "polygon",
+                sides: 5,
+                color: "#FF0000",
+                fillColor: "#FF0000",
+                weight: 2
+            }*/]
+        });
+
+/*customlegend.addTo(map);*/
+
+
+
+
+
+
+
+
+//Geoserver Web Feature Service
+/*var owsrootUrl = 'http://165.227.66.162:8080/geoserver/ows';
+
+var defaultParameters = {
+
+    service : 'WFS',
+    version : '1.0.0',
+    request : 'GetFeature',
+    typeName : 'floods:app_floods2',*/
+    /*maxFeatures:50,
+    username:'admin',
+    password:'geoserver',*/
+    /*CQL_FILTER: CQL_FILTER,    
+    outputFormat : 'text/javascript',*/
+    /*format_options : 'callback:getJson',*/
+    /*SrsName : 'EPSG:4326'*/
+/*};*/
+
+/*var parameters = L.Util.extend(defaultParameters);
+var URL = owsrootUrl + L.Util.getParamString(parameters);
+
+var WFSLayer = null;
+$.ajax({
+    url : URhttps://www.youtube.com/watch?v=_bCthmBLaAkL,
+    dataType : 'jsonp',*/
+    /*jsonpCallback : 'getJson',*/
+/*    success : handleJson
+});*/
+
+/*function handleJson(data) {
+    L.geoJson(data, {
+        onEachFeature: onEachFeature,
+        pointToLayer: function (feature, latlng) {
+            return L.circleMarker(latlng, geojsonMarkerOptions);
+            //return L.marker(latlng);
+        }
+    }).addTo(map);
+}*/
+
+// console.log(ajax)
+
+/*Legend specific*/
+/*var legend = L.control({ position: "bottomright" });
+legend.onAdd = function(map) {
+    var div = L.DomUtil.create("div", "legend");
+    div.innerHTML += "<h4>Legend</h4>";
+    div.innerHTML += "<p><b>Seasons</b></p>";
+    div.innerHTML += '<img src="../../static/assets/img/Gu.png" style="padding-bottom: 5px; margin-right: 5px; width:15px; height:20px;"><span>Gu</span><br>';
+    div.innerHTML += '<img src="../../static/assets/img/Deyr.png" style="padding-bottom: 5px; margin-right: 5px; width:15px; height:20px;"><span>Deyr</span><br>';
+    div.innerHTML += "<br>";
+    return div;
+};
+legend.addTo(map);
+map.attributionControl.addAttribution('<a href="faoswalim.org">&copy; FAO SWALIM</a>');
+L.control.scale().addTo(map);*/
+
+</script>
+<script>
+  /*$(document).on('click', '#id_clear_filters', function(e) {
+      $("#filter-button").trigger('click');
+  });
+  $('#id_season').prepend("<option selected='selected' value=''>Select Season ...</option>");
+  $('#id_year').prepend("<option selected='selected' value=''>Select Year ...</option>");*/
+  $(document).ready(function() {
+
+       $("#id_year").change(function() {
+           var val = $(this).val();
+           if (val == "2013") {
+               $("#id_season").html("<option value='Deyr'>Deyr</option>");
+           } else if (val == "2015" || val == "2016" || val == "2021" ) {
+               $("#id_season").html("<option value='Gu'>Gu</option>");
+
+           } else if (val == "2018" || val == "2019" ) {
+               $("#id_season").html("<option selected>Choose Season ...</option><option value='Deyr'>Deyr</option><option value='Gu'>Gu</option>");
+
+           }
+           else if (val == "2020") {
+                       $("#id_season").html("<option selected>Choose Season ...</option><option value='Gu'>Gu</option><option value='Hagaa'>Hagaa</option>");
+
+           }
+       });
+
+
+   });
+  
+  /*$("#houses").prepend("<input type='text' value='' placeholder='Houses ...'>");*/
+</script>
+
+{% endblock javascripts %}

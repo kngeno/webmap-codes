@@ -1,0 +1,1167 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}LiveMap :: SWIMS{% endblock %}
+{% load bootstrap3 %}
+{% load bootstrap_toolkit %}
+{% load i18n %}
+{% load widget_tweaks %}
+{% load crispy_forms_tags %}
+{% load leaflet_tags %}
+
+{% block extra_css %}
+
+<!-- Bootstrap Core Css -->
+<link href="{% static "plugins/bootstrap/css/bootstrap.css" %}" rel="stylesheet">
+<!-- Calcite Maps Bootstrap -->
+<link rel="stylesheet" href="{% static "calcite-maps/dist/css/calcite-maps-bootstrap.min-v0.10.css" %}">
+
+<!-- Calcite Maps -->
+<link rel="stylesheet" href="{% static "calcite-maps/dist/css/calcite-maps-esri-leaflet.min-v0.10.css" %}">
+<link rel="stylesheet" href="{% static "calcite-maps/dist/fonts/calcite/calcite-ui.css" %}">
+<link rel="stylesheet" href="{% static "css/jquery-ui.min.css" %}">
+<!-- Load Leaflet from CDN-->
+<link rel="stylesheet" href="{% static "calcite-maps/dist/leaflet/leaflet.css" %}"/>
+<!-- <link rel="stylesheet" href="{% static "calcite-maps/dist/leaflet/leaflet-measure.css" %}"/> -->
+<link rel="stylesheet" href="{% static "calcite-maps/dist/leaflet/leaflet-search.css" %}"/>
+<!-- <link rel="stylesheet" href="{% static "calcite-maps/dist/leaflet/Leaflet.PolylineMeasure.css" %}" /> -->
+<!-- <link rel="stylesheet" href="{% static "calcite-maps/dist/leaflet/leaflet.fusesearch.css" %}"/> -->
+<script src="{% static "calcite-maps/dist/leaflet/leaflet-src.js" %}"></script>
+<script src="{% static "calcite-maps/dist/leaflet/esri-leaflet-debug.js" %}"></script>
+
+<!-- Load Esri Leaflet Geocoder from CDN -->
+<link rel="stylesheet" href="{% static "calcite-maps/dist/leaflet/esri-leaflet-geocoder.css" %}" />
+<script src="{% static "calcite-maps/dist/leaflet/esri-leaflet-geocoder-debug.js" %}"></script>
+
+<link rel="stylesheet" href="{% static "calcite-maps/dist/leaflet/MarkerCluster.css" %}" />
+<link rel="stylesheet" href="{% static "calcite-maps/dist/leaflet/MarkerCluster.Default.css" %}" />
+<link rel="stylesheet" type="text/css" href="{% static "calcite-maps/dist/leaflet/leaflet-ruler.css" %}" />
+<!-- <script src="{% static "calcite-maps/dist/leaflet/Leaflet.PolylineMeasure.js" %}"></script> -->
+<script src="{% static "calcite-maps/dist/leaflet/leaflet-ruler.js" %}"></script>
+<script src="{% static "calcite-maps/dist/leaflet/leaflet.markercluster-src.js" %}"></script>
+<script src="{% static "calcite-maps/dist/leaflet/esri-leaflet-cluster.js" %}"></script>
+<!-- <script src="{% static "calcite-maps/dist/leaflet/leaflet-measure.js" %}"></script> -->
+<!-- <script src="{% static "calcite-maps/dist/leaflet/fuse.js" %}"></script> -->
+<!-- <script src="{% static "calcite-maps/dist/leaflet/leaflet.fusesearch.js" %}"></script> -->
+<script src="{% static "calcite-maps/dist/leaflet/leaflet-search.js" %}"></script>
+<script src="{% static "calcite-maps/dist/leaflet/leaflet-easyPrint.js" %}"></script>
+<script src="{% static "js/popper.min.js" %}"></script> 
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css?family=Roboto:400,700&subset=latin,cyrillic-ext" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" type="text/css">
+
+
+<!-- Waves Effect Css -->
+<link href="{% static "plugins/node-waves/waves.css" %}" rel="stylesheet" />
+
+<!-- Animation Css -->
+<link href="{% static "plugins/animate-css/animate.css" %}" rel="stylesheet" />
+
+<!-- JVectorMap Css -->
+<link href="{% static "plugins/jvectormap/jquery-jvectormap-1.2.2.css" %}" rel="stylesheet" />
+
+<!-- Custom Css -->
+<link href="{% static "css/style.css" %}" rel="stylesheet">
+
+<!-- AdminBSB Themes. You can choose a theme from css/themes instead of get all themes -->
+<link href="{% static "css/themes/all-themes.css" %}" rel="stylesheet" />
+
+<link href="{% static "css/style.css" %}" rel="stylesheet">
+
+
+
+<!-- Jquery Core Js -->
+<!-- <script src="{% static "plugins/jquery/jquery.min.js" %}" ></script> -->
+<!-- jQuery UI!-->
+<script src="{% static 'js/jquery-1.12.4.js' %}"></script>
+<script src="{% static 'js/jquery-ui.js' %}"></script>
+<!-- Bootstrap Core Js -->
+<script src="{% static 'plugins/bootstrap/js/bootstrap.js' %}" ></script>
+<!-- Select Plugin Js -->
+<script src="{% static 'plugins/bootstrap-select/js/bootstrap-select.js' %}" ></script>
+
+<!-- Slimscroll Plugin Js -->
+<script src="{% static 'plugins/jquery-slimscroll/jquery.slimscroll.js' %}" ></script>
+
+<!-- Waves Effect Plugin Js -->
+<script src="{% static 'plugins/node-waves/waves.js' %}" ></script>
+<script src="{% static 'js/jquery.zoom.js' %}" type="text/javascript"></script>
+<script>
+$(document).ready(function(){
+    $('#myImg').zoom();
+    $('#ex2').zoom({ on:'grab' });
+    $('#ex3').zoom({ on:'click' });			 
+    $('#ex4').zoom({ on:'toggle' });
+});
+</script>
+<style>
+body {
+    background-color: #fff;
+    -moz-transition: all 0.5s;
+    -o-transition: all 0.5s;
+    -webkit-transition: all 0.5s;
+    transition: all 0.5s;
+    font-family: 'Roboto', Arial, Tahoma, sans-serif;
+}
+/* Small devices (portrait tablets and large phones, 600px and up) */
+@media only screen and (min-width: 150px) {
+    section.content {
+        margin: 160px 15px 0 0px;
+        -moz-transition: 0.5s;
+        -o-transition: 0.5s;
+        -webkit-transition: 0.5s;
+        transition: 0.5s;
+    }
+    .body{
+        position: sticky;
+        outline: currentcolor none medium;
+    }
+    .modal-content {
+        width: 100%;
+    }
+}
+
+/* Medium devices (landscape tablets, 768px and up) */
+@media only screen and (min-width: 768px) {
+    .leaflet-container{
+        width: 100%;
+        height: 550px;
+        width: 990px;
+    }
+    section.content {
+        margin: 160px 15px 0 0px;
+        -moz-transition: 0.5s;
+        -o-transition: 0.5s;
+        -webkit-transition: 0.5s;
+        transition: 0.5s;
+    }
+    .body{
+        position: sticky;
+        outline: currentcolor none medium;
+    }
+    .card {
+         height: 550px;  /*790px; */
+         width: 990px;
+    }
+    #panelFilter {
+        height: 300px;
+        overflow: scroll;
+    }
+    .btn-primary{
+        margin-top: 5px;
+    }
+    .leaflet-popup {
+        position: absolute;
+        text-align: center;
+        margin-bottom: 20px;
+        width: 950px;
+    }
+    .leaflet-popup-content-wrapper{
+        width: 950px;
+    }
+    .dropdown{
+        margin-left: 500px;
+    }
+    .user-accounts {
+        margin-left: 500px;
+    }
+
+    /* .accounts {
+        margin-top: 20px;
+        margin-left: 200px;
+    } */
+    /* .navbar-nav, .nav{
+        margin-top: 15px;
+        margin-right: 150px;
+    } */
+    .modal-content {
+        width: 100%;
+    }
+}
+
+/* Large devices (laptops/desktops, 992px and up) */
+@media only screen and (min-width: 992px) {
+    /* section.content {
+        margin: 160px 15px 0 0px;
+        -moz-transition: 0.5s;
+        -o-transition: 0.5s;
+        -webkit-transition: 0.5s;
+        transition: 0.5s;
+    } */
+    .body{
+        position: sticky;
+        outline: currentcolor none medium;
+    }
+    .leaflet-popup {
+        position: absolute;
+        text-align: center;
+        margin-bottom: 20px;
+        width: 950px;
+    }
+    .leaflet-popup-content-wrapper{
+        width: 950px;
+    }
+    .dropdown{
+        margin-left: 500px;
+    }
+    .user-accounts {
+        margin-left: 500px;
+    }
+
+    /* .accounts {
+        margin-top: 20px;
+        margin-left: 200px;
+    }
+
+    .navbar-nav {
+        margin-top: -4px;
+        margin-right: 0px;
+    } */
+
+    #panelFilter {
+        height: 440px;
+        width: 350px;
+        overflow: scroll;
+    }
+    .modal-content {
+        width: 100%;
+    }
+}
+
+/* Extra large devices (large laptops and desktops, 1200px and up) */
+@media only screen and (min-width: 1920px) {
+    .leaflet-container{
+        width: 100%; /* 990px; */
+        height: 790px;
+    }
+    /* section.content {
+        margin: 160px 15px 0 0px;
+        -moz-transition: 0.5s;
+        -o-transition: 0.5s;
+        -webkit-transition: 0.5s;
+        transition: 0.5s;
+    } */
+    .body{
+        position: sticky;
+        outline: currentcolor none medium;
+    }
+    .card{
+        height: 790px;
+    }
+    .btn-primary{
+        margin-top: -1px;
+    }
+    .dropdown{
+        margin-left: 500px;
+    }
+    .user-accounts {
+        margin-left: 500px;
+    }
+
+    /* .accounts {
+        margin-top: 20px;
+        margin-left: 200px;
+    } */
+
+    /* .navbar-nav {
+        float: right;
+        margin-right: 300px;
+    } */
+    #panelFilter {
+        height: 680px;
+        overflow: auto;
+        width: 480px;
+    }
+    .modal-content {
+        width: 100%;
+    }
+}
+.btn-primary {
+    color: #fff;
+    background-color: #4a8bd0 !important;
+    border-color: #4a8bd0 !important;
+}
+
+.legend{
+    top: -50px;
+    margin-right: -100px;
+    background-color: white;
+    width: 120px;
+}
+
+.animated-icon{
+    width: 20px;
+    height: 20px;
+    background-color: rgba(255,255,255,0.5);
+    border-radius: 50%;
+    box-shadow: 0px 0px 4px white;
+    transition: all 1s; 
+}
+
+.leaflet-touch .leaflet-bar {
+    border: none;
+}
+
+.leaflet-popup {
+    position: absolute;
+    text-align: center;
+    margin-bottom: 20px;
+    width: 1100px;
+}
+.leaflet-popup-content-wrapper{
+    width: 1100px;
+}
+
+.card .body {
+    font-size: 14px;
+    color: #555;
+    padding: 0px;
+}
+.form-control {
+    width: 100%;
+    height: 34px;
+    padding: 6px 12px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 0;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+    -webkit-transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+    -o-transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+    transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+}
+.form-control, output {
+    font-size: 14px;
+    line-height: 1.428571429;
+    color: #555;
+    display: revert;
+}
+.form-group {
+    width: 100%;
+    margin-bottom: 25px;
+    border-block-end-style: outset;
+    border-width: thin;
+    border-top-style: ridge;
+    border-left-style: ridge;
+    border-right-style: ridge;
+}
+.cluster {
+    background: #4a8bd0;
+    border-radius: 50%;
+    text-align: center;
+    color: white;
+    font-weight: 700;
+    border: 1px solid #4a8bd0;
+    font-family: monospace;
+}
+
+.cluster:before {
+    content: ' ';
+    position: absolute;
+    border-radius: 50%;
+    z-index: -1;
+    top: 1px;
+    left: 1px;
+    right: 1px;
+    bottom: 1px;
+    border: 1px solid white;
+}
+
+.digits-1 {
+    font-size: 14px;
+    height: 28px;
+    width: 28px;
+    line-height: 28px;
+    margin-top: -14px;
+    margin-left: -14px;
+}
+
+.digits-2 {
+    font-size: 16px;
+    height: 34px;
+    width: 34px;
+    line-height: 35px;
+    margin-top: -17px;
+    margin-left: -17px;
+}
+
+.digits-2:before {
+border-width: 2px;
+}
+
+.digits-3 {
+    font-size: 18px;
+    height: 48px;
+    width: 47px;
+    line-height: 47px;
+    border-width: 3px;
+    margin-top: -24px;
+    margin-left: -24px;
+}
+
+.digits-3:before {
+    border-width: 3px;
+}
+
+.digits-4 {
+    font-size: 18px;
+    height: 58px;
+    width: 58px;
+    line-height: 57px;
+    border-width: 4px;
+    margin-top: -29px;
+    margin-left: -29px;
+}
+
+.digits-4:before {
+    border-width: 4px;
+}
+
+#progress {
+    display: none;
+    position: absolute;
+    z-index: 1000;
+    left: 400px;
+    top: 300px;
+    width: 200px;
+    height: 20px;
+    margin-top: -20px;
+    margin-left: -100px;
+    background-color: #fff;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 4px;
+    padding: 2px;
+}
+
+#progress-bar {
+    width: 0;
+    height: 100%;
+    background-color: #4a8bd0;
+    border-radius: 4px;
+}
+
+#myImg {
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+#myImg:hover {opacity: 0.7;}
+
+/* The Modal (background) */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  padding-top: 100px; /* Location of the box */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.9); /* Black w/ opacity */
+}
+
+/* Modal Content (image) */
+.modal-content {
+  margin: auto;
+  display: block;
+  width: 80%;
+  max-width: 700px;
+}
+
+/* Caption of Modal Image */
+#caption {
+  margin: auto;
+  display: block;
+  width: 80%;
+  max-width: 700px;
+  text-align: center;
+  color: #ccc;
+  padding: 10px 0;
+  height: 150px;
+}
+
+/* Add Animation */
+.modal-content, #caption {  
+  -webkit-animation-name: zoom;
+  -webkit-animation-duration: 0.6s;
+  animation-name: zoom;
+  animation-duration: 0.6s;
+}
+
+@-webkit-keyframes zoom {
+  from {-webkit-transform:scale(0)} 
+  to {-webkit-transform:scale(1)}
+}
+
+@keyframes zoom {
+  from {transform:scale(0)} 
+  to {transform:scale(1)}
+}
+
+/* The Close Button */
+.close {
+  position: absolute;
+  top: 15px;
+  right: 35px;
+  color: #f1f1f1;
+  font-size: 40px;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.close:hover,
+.close:focus {
+  color: #bbb;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+</style>
+<style>
+/* these styles are for the demo, but are not required for the plugin */
+.zoom {
+    display:inline-block;
+    position: relative;
+}
+
+/* magnifying glass icon */
+.zoom:after {
+    content:'';
+    display:block; 
+    width:33px; 
+    height:33px; 
+    position:absolute; 
+    top:0;
+    right:0;
+    background:url(icon.png);
+}
+
+.zoom img {
+    display: block;
+}
+
+.zoom img::selection { background-color: transparent; }
+</style>
+{% endblock %}
+
+{% block loader %}
+{% endblock %}
+{% block content %}
+<section class="content">
+        <div class="container-fluid">
+            <!-- Example -->
+            <div class="row clearfix" id="dashboard-view">
+                <div class="col-lg-3">
+                    <div id="panelBasemaps" class="panel">
+                        <div id="headingBasemaps" class="panel-heading" role="tab">
+                            <div class="panel-title">
+                                <a class="panel-toggle collapsed" role="button" data-toggle="collapse" href="#collapseBasemaps" aria-expanded="false" aria-controls="collapseBasemaps" style="background-color: white;color: #56a5d8;"><span class="glyphicon glyphicon-th-large" aria-hidden="true"></span><span class="panel-label" style="color: #367fa9;font-size: larger;font-weight: bold;">Basemaps</span></a>
+                            </div>
+                            <div id=" " class="" role="tabpanel" aria-labelledby="headingBasemaps">
+                                <div class="panel-body">
+                                    <select id="selectStandardBasemap" class="form-control">
+                                        <option value="Streets">Streets</option>
+                                        <option value="Imagery">Satellite</option>
+                                        <option selected value="OpenStreetMap">Open Street Map</option>
+                                        <option value="Topographic">Topographic</option>
+                                        <option value="Gray">Gray</option>
+                                        <option value="DarkGray">Dark Gray</option>
+                                        <option value="NationalGeographic">National Geographic</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="panelFilter" class="panel">
+                            <div id="headingInfo" class="panel-heading" role="tab">
+                                <div class="panel-title">
+                                <a class="panel-toggle" role="button" data-toggle="collapse" href="#collapseInfo" aria-expanded="true" aria-controls="collapseInfo" style="background-color: white; color:#56a5d8;"><span class="glyphicon glyphicon-filter" aria-hidden="false"></span><span class="panel-label" style="color: #367fa9;font-size: larger;font-weight: bold;">Filter Data</span></a> 
+                                </div>
+                            </div>
+                            <div id=" " class=" " role="tabpanel" aria-labelledby="headingInfo">
+                                <div class="panel-body" style="height: 800px;">            
+                                    <form method="get" action="{% url 'livemap:view' %}" id="id_query_form" >
+                                        {{ form.source_name|as_crispy_field }}
+                                        {{ form.water_source_type|as_crispy_field }}
+                                        <div id="div_id_region" class="form-group"> 
+                                            <div class="controls ">
+                                                <select placeholder="Region" name="region" class="select form-control" id="id_region" onchange="_1sel();">
+                                                  <option value="">Select Region ...</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div id="div_id_district" class="form-group">
+                                            <div class="controls ">
+                                                <select name="district" class="select-district select form-control" id="id_district">    
+                                                </select>   
+                                            </div>
+                                        </div>
+                                        {{ form.inspecting_agency|as_crispy_field }}
+                                        {{ form.establishing_agency|as_crispy_field }}
+                                        {{ form.last_intervention_agency|as_crispy_field }}
+                                        {{ form.users|as_crispy_field }}
+                                        {{ form.permanent|as_crispy_field }}
+                                        {{ form.functioning|as_crispy_field }}
+                                        {{ form.depth_after|as_crispy_field }}
+                                        {{ form.depth_before|as_crispy_field }}
+                                        {{ form.yield_after|as_crispy_field }}
+                                        {{ form.yield_before|as_crispy_field }}
+                                        {{ form.source_of_power|as_crispy_field }}
+                                        {{ form.ec_after|as_crispy_field }}
+                                        {{ form.ec_before|as_crispy_field }}
+                                        {{ form.management_type|as_crispy_field }}                                        
+                                        {{ form.metadata_tag|as_crispy_field }}
+                                        
+                                        <p>
+                                            <button class="btn btn-success" id="filter-button" type="submit">Filter</button>
+                                            <!-- <button type="reset" class="btn btn-info" value="Reset filters">Reset filters</button> -->
+                                            <button type="reset" class="btn btn-warning" id="id_clear_filters" onclick="return resetForm(this.form);">Clear Filters</button>
+                                        </p>
+                                    </form>
+                                    <form action="{% url "livemap:downloads" %}">
+                                      <!-- <button type="submit" class="btn btn-primary" form="id_query_form" formaction="{% url 'livemap:csv' %}" value="Export CSV" style="margin-top: 5px;">Export Data</button> -->
+                                      <button type="submit" class="btn btn-primary" form="id_query_form" formaction= "{% url 'livemap:downloads' %}" value="Export CSV" style="margin-top: 5px;">Export Data</button>
+                                      <div style="margin-left: 130px;margin-top: -25px;text-emphasis: black;font-weight: bolder;font-size: initial;font-size: 12px;">
+                                          {{ watersources.count }} Water Source{{ watersources | pluralize }}
+                                      </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-9">
+                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                        <div class="card">
+                            <div class="body">
+                                <div id="progress">
+                                    <div id="progress-bar">
+                                    </div>
+                                </div>
+                                <div id="map" class="jvector-map"></div>                                
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- #END# Example -->
+        </div>
+</section>
+{% endblock %}
+{% block extra_script %}
+<script type="text/javascript">
+$(function() {
+  $("#id_source_name").autocomplete({
+    source: "{% url 'livemap:search' %}",
+    minLength: 2,
+  });
+});
+</script> 
+<script>
+
+// ============
+// Esri-Leaflet 
+// ============
+
+var map = L.map('map',
+    {
+        zoomControl: false,
+        zoomSnap: 0.25,
+        // measureControl: true,
+        renderer: L.canvas()
+    }
+).setView([5.0012, 46.5322], 5.8),
+
+layer = L.esri.basemapLayer('Streets').addTo(map), 
+// layer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map),  
+// layerLabels = L.esri.basemapLayer('xxxLabels').addTo(map);
+layerLabels = null,
+worldTransportation = L.esri.basemapLayer('ImageryTransportation');
+nationalGeographic = L.esri.basemapLayer('NationalGeographic');    
+
+function setBasemap(basemap) {
+    if (layer) {
+    map.removeLayer(layer);
+    }
+    if (basemap === 'OpenStreetMap') {
+    layer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png");
+    }
+    else {
+    layer = L.esri.basemapLayer(basemap);
+    }
+    map.addLayer(layer);
+    if (layerLabels) {
+    map.removeLayer(layerLabels);
+    }
+
+    if (basemap === 'ShadedRelief' || basemap === 'Oceans' || basemap === 'Gray' || basemap === 'DarkGray' || basemap === 'Imagery' || basemap === 'Terrain') {
+    layerLabels = L.esri.basemapLayer(basemap + 'Labels');
+    map.addLayer(layerLabels);
+    }
+    
+    // add world transportation service to Imagery basemap
+    if (basemap === 'Imagery') {
+    worldTransportation.addTo(map);            
+    } else if (map.hasLayer(worldTransportation)) {
+    // remove world transportation if Imagery basemap is not selected    
+    map.removeLayer(worldTransportation);
+    }
+
+    if (basemap === 'NationalGeographic') {
+    nationalGeographic.addTo(map);            
+    } else if (map.hasLayer(nationalGeographic)) {
+    // remove world transportation if Imagery basemap is not selected    
+    map.removeLayer(nationalGeographic);
+    }
+}
+
+L.control.zoom({
+    position:'topright'
+}).addTo(map);
+
+
+options= {
+    position: 'topright',         // Leaflet control position option
+    circleMarker: {               // Leaflet circle marker options for points used in this plugin
+        color: '#4a8bd0',
+        radius: 2
+    },
+    lineStyle: {                  // Leaflet polyline options for lines used in this plugin
+        color: '#4a8bd0',
+        dashArray: '1,6'
+    },
+    lengthUnit: {                 // You can use custom length units. Default unit is kilometers.
+        display: 'km',              // This is the display value will be shown on the screen. Example: 'meters'
+        decimal: 2,                 // Distance result will be fixed to this value. 
+        factor: null,               // This value will be used to convert from kilometers. Example: 1000 (from kilometers to meters)  
+        label: 'Distance:'           
+    },
+    angleUnit: {
+        display: '&deg;',           // This is the display value will be shown on the screen. Example: 'Gradian'
+        decimal: 2,                 // Bearing result will be fixed to this value.
+        factor: null,                // This option is required to customize angle unit. Specify solid angle value for angle unit. Example: 400 (for gradian).
+        label: 'Bearing:'
+    }
+}
+L.control.ruler(options).addTo(map);
+// var searchControl = L.esri.Geocoding.Controls.geosearch({expanded: true, collapseAfterResult: false, zoomToResult: false}).addTo(map);
+// var searchControl = L.esri.Geocoding.geosearch({expanded: false, collapseAfterResult: true, zoomToResult: true}).addTo(map);
+// L.control.scale ({maxWidth:240, metric:true, imperial:false, position: 'bottomleft'}).addTo (map);
+// var polylineMeasure = L.control.polylineMeasure ({position:'topleft', unit:'metres', showBearings:true, clearMeasurementsOnStop: false, showClearControl: true, showUnitControl: true})
+// polylineMeasure.addTo (map);
+
+var progress = document.getElementById('progress');
+var progressBar = document.getElementById('progress-bar');
+function updateProgressBar(processed, total, elapsed, layersArray) {
+    if (elapsed > 1000) {
+        // if it takes more than a second to load, display the progress bar:
+        progress.style.display = 'block';
+        progressBar.style.width = Math.round(processed/total*100) + '%';
+    }
+
+    if (processed === total) {
+        // all markers processed - hide the progress bar:
+        progress.style.display = 'none';
+    }
+}
+
+var markers = L.markerClusterGroup(
+    {
+        // maxClusterRadius: 10,
+        // animateAddingMarkers: false,
+        spiderfyOnMaxZoom: false,
+        removeOutsideVisibleBounds: true,
+        disableClusteringAtZoom: 10,
+        iconCreateFunction: function (cluster) {
+            var count = cluster.getChildCount();
+            var digits = (count + '').length;
+            return L.divIcon({
+                html: count,
+                className: 'cluster digits-' + digits,
+                iconSize: null
+            });
+        },
+        chunkedLoading: true, 
+        chunkProgress: updateProgressBar
+    }
+);
+
+var printer = L.easyPrint({
+    title: 'Save an image of the current map view',
+    sizeModes: ['Current', 'A4Landscape', 'A4Portrait'],
+    filename: 'SWIMS-LiveMap',
+    hideControlContainer: true,
+    // hideClasses: ['leaflet-control-easyPrint', 'leaflet-top leaflet-right', 'leaflet-bottom leaflet-left'],
+    exportOnly: true
+}).addTo(map);
+
+function manualPrint () {
+    printer.printMap('CurrentSize', 'SWIMS-LiveMap')
+}
+
+var markerList = [];
+
+var swimsOptions = {
+    "radius": 5,
+    "fillColor": "#012999",
+    "color": "#012999",
+    "weight": 1,
+    "opacity": 1
+};
+
+L.control.search({
+    layer: markers,
+    textPlaceholder: 'Code ...',
+    position: 'topleft',
+    hideMarkerOnCollapse: true,
+    zoom:16,
+    marker: {
+        circle: {
+            radius: 20,
+            color: '#1F91F3',
+            opacity: 1
+        }
+    }
+}).addTo(map);
+
+function populateMap(data){
+    for(i in data) {
+        var code  = data[i].code,
+        source_name = data[i].source_name,
+        water_source_type = data[i].water_source_type,
+        settlement_name = data[i].settlement_name,
+        region = data[i].region,
+        district = data[i].district,
+        inspecting_agency = data[i].inspecting_agency,
+        establishing_agency = data[i].establishing_agency,
+        water_use_type = data[i].water_use_type,
+        water_source_photo = data[i].water_source_photo,
+        permanent = data[i].permanent,
+        functioning = data[i].functioning,
+        management_type = data[i].management_type,
+        water_sample_no = data[i].water_sample_no,
+        loc = data[i].loc,		//position found        
+
+        swimsIcon = L.icon({
+            iconUrl: '../static/calcite-maps/icons/'  + functioning + '/' + water_source_type + '.png', // iconUrl: '../static/leaf/icons/other.png',
+            iconSize:     [15, 15], // size of the icon
+            // shadowSize:   [50, 64], // size of the shadow
+            iconAnchor:   [8, 7], // point of the icon which will correspond to marker's location
+            // shadowAnchor: [4, 62],  // the same for the shadow
+            popupAnchor:  [0, -13], // point from which the popup should open relative to the iconAnchor
+            shadowSize: [5, 5],
+            // className: 'animated-icon my-icon-id',
+            html: ''
+        });
+        marker = new L.Marker(new L.latLng(loc), {
+            title: code,
+            icon: swimsIcon
+        });//se property searched
+        var template = '';
+        var map_table = '';
+        marker.bindPopup(
+            '<table id="source-table" class="table table-striped table-bordered" cellspacing="0" width="100%">\
+            <thead>\
+                <tr>\
+                    <th>Code</th>\
+                    <th>Source Type</th>\
+                    <th>Source Name</th>\
+                    <th>Inspecting Agency</th>\
+                    <th>Region</th>\
+                    <th>District</th>\
+                    <th>Establishing Agency</th>\
+                    <th>Settlement Name</th>\
+                    <th>Water Source Photo</th>\
+                    <th>Water Use Type</th>\
+                    <th>Permanent</th>\
+                    <th>Functioning</th>\
+                </tr>\
+            </thead>\
+            <tbody>\
+                <tr>\
+                    <td><a href="../../data/detail/'+ code + '">' + code + '</a></td>\
+                    <td>'+ water_source_type + '</td>\
+                    <td>'+ source_name + '</td>\
+                    <td>'+ inspecting_agency + '</td>\
+                    <td>'+ region + '</td>\
+                    <td>'+ district + '</td>\
+                    <td>'+ establishing_agency + '</td>\
+                    <td>'+ settlement_name + '</td>\
+                    <td><a class="zoom" href="#"><img id="myImg" src="../../uploaded/photographs/'+ water_source_photo + '" alt="No Photo" style="width: 30px;height: 30px;"></a></td>\
+                    <td>'+ water_use_type + '</td>\
+                    <td>'+ permanent + '</td>\
+                    <td>'+ functioning + '</td>\
+                </tr>\
+            </tbody>\
+        </table>');
+        
+        markerList.push(marker);
+        markers.addLayers(markerList);
+        map.addLayer(markers);
+    }
+}
+
+/*Legend specific*/
+var legend = L.control({ position: "bottomright" });
+
+legend.onAdd = function(map) {
+    var div = L.DomUtil.create("div", "legend");
+    div.innerHTML += "<h4>Legend</h4>";
+    div.innerHTML += '<img src="../../static/calcite-maps/icons/Yes/Borehole.png" style="padding-bottom: 5px; margin-right: 5px; width:15px; height:20px;"><span>Borehole</span><br>';
+    div.innerHTML += '<img src="../../static/calcite-maps/icons/Yes/Dug Well.png" style="padding-bottom: 5px; margin-right: 5px; width:15px; height:20px;"><span>Dug Well</span><br>';
+    div.innerHTML += '<img src="../../static/calcite-maps/icons/Yes/Dam.png" style="padding-bottom: 5px; margin-right: 5px; width:15px; height:20px;"><span>Dam</span><br>';
+    div.innerHTML += '<img src="../../static/calcite-maps/icons/Yes/Berkad.png" style="padding-bottom: 5px; margin-right: 5px; width:15px; height:20px;"><span>Berkad</span><br>';
+    div.innerHTML += '<img src="../../static/calcite-maps/icons/Yes/Spring.png" style="padding-bottom: 5px; margin-right: 5px; width:15px; height:20px;"><span>Spring</span><br>';
+    div.innerHTML += '<img src="../../static/calcite-maps/icons/Yes/Others_Togga.png" style="padding-bottom: 5px; margin-right: 5px; width:15px; height:20px;"><span>Other Togga</span><br>';
+    div.innerHTML += "<br>";
+    div.innerHTML += '<img src="../../static/calcite-maps/icons/Yes.png" style="margin-right: 5px; width: 20px;height: 20px;"><span>Functional</span><br>';
+    div.innerHTML += '<img src="../../static/calcite-maps/icons/Abandoned.png" style="margin-right: 5px;width: 20px;height: 20px;"><span>Abandoned</span><br>';
+    div.innerHTML += '<img src="../../static/calcite-maps/icons/No.png" style="margin-right: 5px; width: 20px;height: 20px;"><span>Non Functional</span><br>';
+    div.innerHTML += '<img src="../../static/calcite-maps/icons/null.png" style="margin-right: 5px; width: 20px;height: 20px;"><span>No Status Data</span><br>';
+    
+    return div;
+};
+map.attributionControl.addAttribution('<a href="faoswalim.org">&copy; FAO SWALIM</a>');
+legend.addTo(map);
+L.control.scale().addTo(map);
+
+// use context variable instead of making AJAX call 
+var map_watersources =  JSON.parse('{{ map_watersources }}')
+var new_lat = map_watersources[0].loc[0]
+var new_lon = map_watersources[0].loc[1]
+map.setView([5.0012, 46.5322], 5.8);
+populateMap(map_watersources)
+</script>
+<script type="text/javascript">
+$(document).ready(function(){
+
+    // Basemap changed
+    $("#selectStandardBasemap").on("change", function(e) {
+        setBasemap($(this).val());
+    });
+
+    // Search
+    var input = $(".geocoder-control-input");
+    input.focus(function(){
+    $("#panelSearch .panel-body").css("height", "150px");
+    });
+    input.blur(function(){
+        $("#panelSearch .panel-body").css("height", "auto");
+    });
+
+    // Attach search control for desktop or mobile
+    function attachSearch() {
+    var parentName = $(".geocoder-control").parent().attr("id"),
+        geocoder = $(".geocoder-control"),
+        width = $(window).width();
+    if (width <= 767 && parentName !== "geocodeMobile") {
+        geocoder.detach();
+        $("#geocodeMobile").append(geocoder);
+    } else if (width > 767 && parentName !== "geocode"){
+        geocoder.detach();
+        $("#geocode").append(geocoder);
+    }
+    }
+
+    $(window).resize(function() {
+    attachSearch();
+    });
+
+    attachSearch();
+
+});
+</script>
+<script>
+function resetForm(form) {
+    // clearing inputs
+    var inputs = form.getElementsByTagName('input');
+    for (var i = 0; i<inputs.length; i++) {
+        switch (inputs[i].type) {
+            // case 'hidden':
+            case 'text':
+                inputs[i].value = '';
+                break;
+            case 'radio':
+            case 'checkbox':
+                inputs[i].checked = false;   
+        }
+    }
+
+    // clearing selects
+    var selects = form.getElementsByTagName('select');
+    for (var i = 0; i<selects.length; i++)
+        selects[i].selectedIndex = 0;
+
+    // clearing textarea
+    var text= form.getElementsByTagName('textarea');
+    for (var i = 0; i<text.length; i++)
+        text[i].innerHTML= '';
+
+    return false;
+}
+</script>
+<script>
+    var slc1 = document.getElementById("id_region");
+    var slc2 = document.getElementById("id_district");
+    var dataObj = {
+        "":{
+        "":["",""],
+        },
+        "Awdal":{
+            "Baki Borama Lughaye Zeylac":[
+            "Baki Borama Lughaye Zeylac","Baki Borama Lughaye Zeylac"
+            ],
+            "Baki":['Baki',	'Baki'],
+            "Borama":['Borama',	'Borama'],
+            "Lughaye":['Lughaye',	'Lughaye'],
+            "Zeylac":['Zeylac',	'Zeylac'],
+        },
+        "Bakool":{
+            "CeelBarde Tayeeglow Waajid Xudur Yeed":["'Ceel Barde' Tayeeglow Waajid Xudur Yeed","'Ceel Barde' Tayeeglow Waajid Xudur Yeed"],
+            "CeelBarde":['CeelBarde',	'CeelBarde'],
+            "Tayeeglow":['Tayeeglow',	'Tayeeglow'],
+            "Waajid":['Waajid',	'Waajid'],
+            "Xudur":['Xudur',	'Xudur'],
+            "Yeed":['Yeed',	'Yeed'],
+        },
+        "Bari":{
+            "BandarBeyla Bossaso Caluula Iskushuban Qandala Qardho":["BandarBeyla Bossaso Caluula Iskushuban Qandala Qardho","BandarBeyla Bossaso Caluula Iskushuban Qandala Qardho"],
+            "BandarBeyla":['BandarBeyla',	'BandarBeyla'],
+            "Bossaso":['Bossaso',	'Bossaso'],
+            "Caluula":['Caluula',	'Caluula'],
+            "Iskushuban":['Iskushuban',	'Iskushuban'],
+            "Qandala":['Qandala',	'Qandala'],
+            "Qardho":['Qardho',	'Qardho'],
+        },
+        "Bay":{
+            "Baydhaba BurHakaba Diinsoor QansaxDheere":["Baydhaba BurHakaba Diinsoor QansaxDheere","Baydhaba BurHakaba Diinsoor QansaxDheere"],
+            "Baydhaba":['Baydhaba',	'Baydhaba'],
+            "BurHakaba":['BurHakaba',	'BurHakaba'],
+            "Diinsoor":['Diinsoor',	'Diinsoor'],
+            "Qansax Dheere":['Qansax Dheere',	'Qansax Dheere'],
+        },
+        "Galgaduud":{
+            "Cabudwaaq Cadaado CeelBur CeelDheer DhusaMarreb":["Cabudwaaq Cadaado CeelBur CeelDheer DhusaMarreb","Cabudwaaq Cadaado CeelBur CeelDheer DhusaMarreb"],
+            "Cabudwaaq":['Cabudwaaq',	'Cabudwaaq'],
+            "Cadaado":['Cadaado',	'Cadaado'],
+            "CeelBur":['CeelBur',	'CeelBur'],
+            "CeelDheer":['CeelDheer',	'CeelDheer'],
+            "DhusaMarreb":['DhusaMarreb',	'DhusaMarreb'],
+        },
+        "Gedo":{
+            "Baardheere BeletXaawo CelWaq Doolow Garbharey Luuq":["Baardheere BeletXaawo CelWaq Doolow Garbharey Luuq","Baardheere BeletXaawo CelWaq Doolow Garbharey Luuq"],
+            "Baardheere":['Baardheere',	'Baardheere'],
+            "BeletXaawo":['BeletXaawo',	'BeletXaawo'],
+            "CelWaq":['CelWaq',	'CelWaq'],
+            "Doolow":['Doolow',	'Doolow'],
+            "Garbharey":['Garbharey',	'Garbharey'],
+            "Luuq":['Luuq',	'Luuq'],
+        },  
+        "Hiraan":{
+            "BeledWeyne BuloBarde Jalalaqsi":["BeledWeyne BuloBarde Jalalaqsi","BeledWeyne BuloBarde Jalalaqsi"],
+            "BeledWeyne":['BeledWeyne',	'BeledWeyne'],
+            "BuloBarde":['BuloBarde',	'BuloBarde'],
+            "Jalalaqsi":['Jalalaqsi',	'Jalalaqsi'],
+        },
+        "Lower Juba":{
+            "Afmadow Badhaadhe Jamame Kismayo ":["Afmadow Badhaadhe Jamame Kismayo","Afmadow Badhaadhe Jamame Kismayo"],
+            "Afmadow":['Afmadow',	'Afmadow'],
+            "Badhaadhe":['Badhaadhe',	'Badhaadhe'],
+            "Jamame":['Jamame',	'Jamame'],
+            "Kismayo":['Kismayo',	'Kismayo'],
+        },
+        "Lower Shabele":{
+            "Afgooye Baraawe KurtunWaarey Marka Qoryooley Sablaale WanlaWeyn":["Afgooye Baraawe KurtunWaarey Marka Qoryooley Sablaale WanlaWeyn","Afgooye Baraawe KurtunWaarey Marka Qoryooley Sablaale WanlaWeyn"],
+            "Afgooye":['Afgooye',	'Afgooye'],
+            "Baraawe":['Baraawe',	'Baraawe'],
+            "KurtunWaarey":['KurtunWaarey',	'KurtunWaarey'],
+            "Marka":['Marka',	'Marka'],
+            "Qoryooley":['Qoryooley',	'Qoryooley'],
+            "Sablaale":['Sablaale',	'Sablaale'],
+            "WanlaWeyn":['WanlaWeyn',	'WanlaWeyn'],
+        },
+        "Middle Juba":{
+            "Bu'aale Jilib Saakow":["Bu'aale Jilib Saakow","Bu'aale Jilib Saakow"],
+            "Bu'aale":["Bu'aale",	"Bu'aale"],
+            "Jilib":['Jilib',	'Jilib'],
+            "Saakow":['Saakow',	'Saakow'],
+        },
+        "Middle Shabele":{
+            "AdenYabaai Balcad Cadaale Jowhar":["AdenYabaai Balcad Cadaale Jowhar","AdenYabaai Balcad Cadaale Jowhar"],
+            "AdenYabaai":['AdenYabaai',	'AdenYabaai'],
+            "Balcad":['Balcad',	'Balcad'],
+            "Cadaale":['Cadaale',	'Cadaale'],
+            "Jowhar":['Jowhar',	'Jowhar'],
+        },
+        "Mudug":{
+            "Galkayo Goldogob Hobyo Jariban Xarardheere":["Galkayo Goldogob Hobyo Jariban Xarardheere","Galkayo Goldogob Hobyo Jariban Xarardheere"],
+            "Galkayo":['Galkayo',	'Galkayo'],
+            "Goldogob":['Goldogob',	'Goldogob'],
+            "Hobyo":['Hobyo',	'Hobyo'],
+            "Jariban":['Jariban',	'Jariban'],
+            "Xarardheere":['Xarardheere',	'Xarardheere'],
+        },
+        "Nugaal":{
+            "Burtinle Eyl Garowe":["Burtinle Eyl Garowe","Burtinle Eyl Garowe"],
+            "Burtinle":['Burtinle',	'Burtinle'],
+            "Eyl":['Eyl',	'Eyl'],
+            "Garowe":['Garowe',	'Garowe'],
+        },
+        "Sanaag":{
+            "CeelAfweyn Ceerigaabo Laasqoray":["CeelAfweyn Ceerigaabo Laasqoray","CeelAfweyn Ceerigaabo Laasqoray"],
+            "CeelAfweyn":['CeelAfweyn',	'CeelAfweyn'],
+            "Ceerigaabo":['Ceerigaabo',	'Ceerigaabo'],
+            "Laasqoray":['Laasqoray',	'Laasqoray'],
+        },
+        "Sool":{
+            "Caynabo LasCaanood Taleex Xudun":["Caynabo LasCaanood Taleex Xudun","Caynabo LasCaanood Taleex Xudun"],
+            "Caynabo":['Caynabo',	'Caynabo'],
+            "LasCaanood":['LasCaanood',	'LasCaanood'],
+            "Taleex":['Taleex',	'Taleex'],
+            "Xudun":['Xudun',	'Xudun'],
+        },
+        "Togdheer":{
+            "Burco Buuhoodle Owdweyne Sheikh":["Burco Buuhoodle Owdweyne Sheikh","Burco Buuhoodle Owdweyne Sheikh"],
+            "Burco":['Burco',	'Burco'],
+            "Buuhoodle":['Buuhoodle',	'Buuhoodle'],
+            "Owdweyne":['Owdweyne',	'Owdweyne'],
+            "Sheikh":['Sheikh',	'Sheikh'],
+        },
+        "Woqooyi Galbeed":{
+            "Berbera Gebiley Hargeisa":["Berbera Gebiley Hargeisa","Berbera Gebiley Hargeisa"],
+            "Berbera":['Berbera',	'Berbera'],
+            "Gebiley":['Gebiley',	'Gebiley'],
+            "Hargeisa":['Hargeisa',	'Hargeisa'],
+        },
+        "Banaadir":{
+            "Mogadishu":['Mogadishu',	'Mogadishu'],
+        }   
+    }
+    let ctrs = Object.keys(dataObj);
+    cmo(ctrs, slc1);
+    _1sel();
+    function _1sel() {
+        slc2.innerHTML = "";
+        let districts = Object.keys(dataObj[slc1.value]);
+        cmo(districts, slc2);
+    }
+    function cmo(arr, s) {//create mult opt
+        arr.forEach(o => {
+            let opt = document.createElement("option");
+            opt.value = o;
+            opt.innerHTML = o;
+            s.add(opt);
+        });
+    }
+</script>
+<script>
+    $(document).on('click', '#id_clear_filters', function(e) {
+        $("#filter-button").trigger('click');
+    });
+    $('#id_inspecting_agency').prepend("<option selected='selected' value=''>Select Inspecting Agency ...</option>");
+    $('#id_establishing_agency').prepend("<option selected='selected' value=''>Select Establishing Agency ...</option>");
+    $('#id_last_intervention_agency').prepend("<option selected='selected' value=''>Select Last Intervention Agency ...</option>");
+    $("#id_district").prepend("<option value='' selected='selected'>Select District ...</option>");
+</script>
+{% endblock %}
